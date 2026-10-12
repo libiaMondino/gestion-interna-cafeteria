@@ -1,4 +1,4 @@
-using Application.Models;
+using Application.Models.Categories;
 
 namespace Application.Interfaces
 {
