@@ -6,9 +6,9 @@ namespace Domain.Entities
 {
     public class Category
     {   // atributos
-        public int Id { get; set; } // Guid
-        public string Name { get; private set; } = string.Empty;
-        public string? Description { get; set; } = string.Empty;
+        public int CategoryId { get; set; } // Guid
+        public string CategoryName { get; private set; } = string.Empty;
+        public string? CategoryDescription { get; set; } = string.Empty;
         //constructor
         public Category(string name)
         {
@@ -21,7 +21,7 @@ namespace Domain.Entities
             {
                 throw new ArgumentException("El nombre de la categoría no puede estar vacío.");
             }   //throw.. indica que el valor recibido no es válido, interrumpe la ejecución del metodo, no se cambia el nombre
-            Name = name;
+            CategoryName = name;
 
         }
 
