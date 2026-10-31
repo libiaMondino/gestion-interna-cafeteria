@@ -1,21 +1,31 @@
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using Application.Interfaces;
-using Infrastructure.Security;
+using Domain.Interfaces;
+using Infrastructure;
+using Infrastructure.Repositories;
+//using Infrastructure.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Agregado del ApplicationDbContext 
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+builder.Services.AddDbContext<ApplicationDBContext>(options =>
+options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 //Inyección de dependencias
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
 
-//Verificación de tokens que llegan en cada una de las request
+//builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+/*Verificación de tokens que llegan en cada una de las request
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>
     {
@@ -29,7 +39,7 @@ builder.Services.AddAuthentication("Bearer")
             IssuerSigningKeyResolver = new SymmetricSecurityKey(
                 Encoding.ASCII.GetBytes(builder.Configuration["Authentication: SecretForKey"]!))
         };
-    });
+    });*/
 
 var app = builder.Build();
 

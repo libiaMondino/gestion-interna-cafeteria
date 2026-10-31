@@ -1,22 +1,27 @@
-﻿using Domain.Interfaces;
-using Infrastructure;
-using System;
+﻿using System;
+using System.Text;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Text;
+using Infrastructure;
+using Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
 namespace Infrastructure.Repositories
 {
     public class GenericRepository<TEntity>: IGenericRepository<TEntity> where TEntity : class
     {
-       
 
+        #region constructor
         protected readonly ApplicationDBContext _context;
 
         public GenericRepository(ApplicationDBContext context)
         {
             _context = context; 
-        } 
-        
+        }
+        #endregion
+
+        #region methods 
+
         public async Task<TEntity?> GetIdAsync(int id) 
         {
             // Puede devolver nulo
@@ -59,7 +64,6 @@ namespace Infrastructure.Repositories
             _context.Set<TEntity>().Remove(objModel);
             _context.SaveChanges();
         }
-
         public async Task<int> FilteredCountAsync(Expression<Func<TEntity, bool>>? predicate = null) 
         {
             // Cuenta cantidad de registros a partir de una condición
@@ -77,5 +81,6 @@ namespace Infrastructure.Repositories
             // 3. Libera cachés internos generados durante consultas de esa sesión
             _context.Dispose();
         }
+        #endregion
     }
 }
