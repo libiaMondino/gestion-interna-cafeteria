@@ -13,15 +13,36 @@ namespace Domain.Entities
 
         public decimal MinimumStock { get; set; }
 
-        public void RegisterStockEntry( decimal quantity) { }
-        public void RegisterStockExit( decimal quantity) { }
+        public void RegisterStockEntry(decimal quantity)
+        {
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("La cantidad de entrada debe ser mayor que cero.");
+            }
+
+            QuantityStock += quantity;
+        }
+        public void RegisterStockExit(decimal quantity)
+        {
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("La cantidad de salida debe ser mayor que cero.");
+            }
+
+            if (!HasSufficientStock(quantity))
+            {
+                throw new InvalidOperationException("No hay stock suficiente.");
+            }
+
+            QuantityStock -= quantity;
+        }
         public bool HasSufficientStock(decimal quantity)
         {
-            return true; // No es así el método, está puesto así para que no lance error por falta de return
+            return QuantityStock >= quantity;
         }
         public bool IsBelowMinimum()
         {
-            return true;// No es así el método, está puesto así para que no lance error por falta de return
+            return QuantityStock <=  MinimumStock;
         }
     }
 }
