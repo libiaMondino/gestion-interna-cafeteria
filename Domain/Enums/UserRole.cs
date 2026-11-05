@@ -7,8 +7,7 @@ namespace Domain.Enums
     public enum UserRole
     {
         Admin = 1,
-        Staff = 2,
-        Kitchen = 3,
-        Waiter = 4
+        Kitchen = 2,
+        Waiter = 3
     }
 }
