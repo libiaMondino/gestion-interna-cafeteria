@@ -17,6 +17,7 @@ namespace Infrastructure
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }        
         public DbSet<User> Users { get; set; }
+        public DbSet<Ingredient> Ingredients { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
     {      
         //método para configurar como nuestras clases se represetan en la base de datos
@@ -110,8 +111,41 @@ namespace Infrastructure
                 .IsRequired();         
         });
 
-        
+            // Configuración de Ingredient
+            modelBuilder.Entity<Ingredient>(entity =>
+            {
+                entity.HasKey(i => i.Id);
 
-    }
+                entity.Property(i => i.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(i => i.UnitOfMeasure)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(i => i.QuantityStock)
+                    .HasPrecision(18, 4);
+
+                entity.Property(i => i.MinimumStock)
+                    .HasPrecision(18, 4);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_Ingredient_QuantityStock",
+                        "[QuantityStock] >= 0"
+                    );
+
+                    t.HasCheckConstraint(
+                        "CK_Ingredient_MinimumStock",
+                        "[MinimumStock] >= 0"
+                    );
+                });
+            });
+
+
+
+        }
     }
 }
