@@ -10,106 +10,107 @@ namespace Infrastructure
         //: base(options) le pasa esa configuración al constructor de la clase padre, DbContext.
         public ApplicationDBContext(DbContextOptions<ApplicationDBContext> options)
             : base(options)
-            
+
         {
         }
 
         public DbSet<Category> Categories { get; set; }
-        public DbSet<Product> Products { get; set; }        
+        public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
+        public DbSet<RecipeDetail> RecipeDetails { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {      
-        //método para configurar como nuestras clases se represetan en la base de datos
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<Category>(entity =>
-        {   
-            entity.HasKey(c => c.CategoryId);
-            
-            entity.Property(c => c.CategoryName)
-                .IsRequired()
-                .HasMaxLength(100);
-
-            entity.HasIndex(c => c.CategoryName)
-                .IsUnique();
-
-            entity.Property(c => c.CategoryDescription)
-                .HasMaxLength(255);
-        });
-        //Configuracion de product
-        modelBuilder.Entity<Product>(entity =>
         {
-            entity.HasKey(p => p.ProductId);
-            entity.HasOne<Category>()// cada producto tiene una categoria
-            .WithMany() //cada categoria puede tener muchos productos
-            .HasForeignKey(p => p.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-            //nombre
-            entity.Property(p => p.ProductName)
-                .IsRequired()
-                .HasMaxLength(100);
-                //descipcion, opcional
-            entity.Property(p => p.ProductDescription)
-                .HasMaxLength(255);
-            // Disponibilidad: obligatoria
-            entity.Property(p => p.ProductIsAvailable)
-                .IsRequired();
-            entity.Property(p => p.ProductPrice)
-            .HasPrecision(18, 2);
-            entity.Property(p => p.ProductType)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();// para guardar si es comprado o elaborado
+            //método para configurar como nuestras clases se represetan en la base de datos
+            base.OnModelCreating(modelBuilder);
 
-            
-            entity.ToTable(t =>
+            modelBuilder.Entity<Category>(entity =>
             {
-                t.HasCheckConstraint(
-                    "CK_Product_QuantityStock",
-                    "[ProductQuantityStock] IS NULL OR [ProductQuantityStock] >= 0"
-                );
+                entity.HasKey(c => c.CategoryId);
 
-                t.HasCheckConstraint(
-                    "CK_Product_MinimumStock",
-                    "[ProductMinimumStock] IS NULL OR [ProductMinimumStock] >= 0"
-                );
-                t.HasCheckConstraint( //no guardar rpreciosn negativos
-            "CK_Product_Price",
-                "[ProductPrice] >= 0"
-                );
+                entity.Property(c => c.CategoryName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.HasIndex(c => c.CategoryName)
+                    .IsUnique();
+
+                entity.Property(c => c.CategoryDescription)
+                    .HasMaxLength(255);
             });
-    
-        });
+            //Configuracion de product
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasKey(p => p.ProductId);
+                entity.HasOne<Category>()// cada producto tiene una categoria
+                .WithMany() //cada categoria puede tener muchos productos
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+                //nombre
+                entity.Property(p => p.ProductName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                //descipcion, opcional
+                entity.Property(p => p.ProductDescription)
+                    .HasMaxLength(255);
+                // Disponibilidad: obligatoria
+                entity.Property(p => p.ProductIsAvailable)
+                    .IsRequired();
+                entity.Property(p => p.ProductPrice)
+                .HasPrecision(18, 2);
+                entity.Property(p => p.ProductType)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();// para guardar si es comprado o elaborado
 
-        // Configuración de User
-        modelBuilder.Entity<User>(entity =>
-        {
-            entity.HasKey(u => u.UserId);
-           entity.Property(u => u.UserName)
-                .IsRequired()
-                .HasMaxLength(100);
 
-            entity.Property(u => u.UserLastName)
-                .IsRequired()
-                .HasMaxLength(100);
-            entity.Property(u => u.UserEmail)
-                .IsRequired()
-                .HasMaxLength(254);
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_Product_QuantityStock",
+                        "[ProductQuantityStock] IS NULL OR [ProductQuantityStock] >= 0"
+                    );
 
-            entity.HasIndex(u => u.UserEmail)
-                .IsUnique();
-            entity.Property(u => u.UserPasswordHash)
-                .IsRequired()
-                .HasMaxLength(512);
+                    t.HasCheckConstraint(
+                        "CK_Product_MinimumStock",
+                        "[ProductMinimumStock] IS NULL OR [ProductMinimumStock] >= 0"
+                    );
+                    t.HasCheckConstraint( //no guardar rpreciosn negativos
+                "CK_Product_Price",
+                    "[ProductPrice] >= 0"
+                    );
+                });
 
-            entity.Property(u => u.UserRole)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();   
-            entity.Property(u => u.IsActive)
-                .IsRequired();         
-        });
+            });
+
+            // Configuración de User
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.UserId);
+                entity.Property(u => u.UserName)
+                 .IsRequired()
+                 .HasMaxLength(100);
+
+                entity.Property(u => u.UserLastName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(u => u.UserEmail)
+                    .IsRequired()
+                    .HasMaxLength(254);
+
+                entity.HasIndex(u => u.UserEmail)
+                    .IsUnique();
+                entity.Property(u => u.UserPasswordHash)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                entity.Property(u => u.UserRole)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+                entity.Property(u => u.IsActive)
+                    .IsRequired();
+            });
 
             // Configuración de Ingredient
             modelBuilder.Entity<Ingredient>(entity =>
@@ -140,6 +141,36 @@ namespace Infrastructure
                     t.HasCheckConstraint(
                         "CK_Ingredient_MinimumStock",
                         "[MinimumStock] >= 0"
+                    );
+                });
+            });
+
+            // Configuración de RecipeDetail
+            modelBuilder.Entity<RecipeDetail>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+
+                entity.Property(r => r.RequiredQuantity)
+                    .HasPrecision(18, 4);
+
+                entity.HasOne<Product>()
+                    .WithMany()
+                    .HasForeignKey(r => r.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Ingredient>()
+                    .WithMany()
+                    .HasForeignKey(r => r.IngredientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(r => new { r.ProductId, r.IngredientId })
+                    .IsUnique();
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_RecipeDetail_RequiredQuantity",
+                        "[RequiredQuantity] > 0"
                     );
                 });
             });
