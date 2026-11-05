@@ -48,7 +48,7 @@ namespace Domain.Entities
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(Reason))
+            if (string.IsNullOrWhiteSpace(Reason) || Reason.Length > 255)
             {
                 return false;
             }
