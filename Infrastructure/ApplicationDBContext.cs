@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Infrastructure
 {
@@ -17,6 +18,7 @@ namespace Infrastructure
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }        
         public DbSet<User> Users { get; set; }
+        public DbSet<Table> Tables { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
     {      
         //método para configurar como nuestras clases se represetan en la base de datos
@@ -109,7 +111,30 @@ namespace Infrastructure
             entity.Property(u => u.IsActive)
                 .IsRequired();         
         });
+        // Configuración de Tables
+        modelBuilder.Entity<Table>( entity =>
+        {
+            entity.HasKey( t => t.Id);
+            entity.Property( t => t.Number)
+                .IsRequired();
+            entity.HasIndex(t => t.Number)
+                .IsUnique();
+            entity.Property(t => t.Capacity)
+                .IsRequired();
+            entity.Property(t => t.Status)
+                .HasMaxLength(10)
+                .IsRequired()
+                .HasDefaultValue("Libre");
 
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Table_Number", "[Number] > 0");
+                t.HasCheckConstraint("CK_Table_Capacity", "[Capacity] > 0");
+                t.HasCheckConstraint("CK_Table_Status", "[Status] IN ('Libre', 'Ocupada')"); // Asegura que se respeten los valores del enum
+
+            });
+                
+        });
         
 
     }
