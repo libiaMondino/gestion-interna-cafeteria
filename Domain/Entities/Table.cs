@@ -9,7 +9,7 @@ namespace Domain.Entities
         public int Id { get; set; }
         public int Number { get; set; }
         public int Capacity { get; set; }
-        public String Status { get; private set; } = "Libre";
+        public string Status { get; private set; } = "Libre";
 
         // Contructor con validación
         public Table(int number, int capacity)
