@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Services;
 using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
@@ -23,7 +24,7 @@ builder.Services.AddOpenApi();
 
 //Inyección de dependencias
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
-
+builder.Services.AddScoped<ITableService, TableService>();
 //builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 /*Verificación de tokens que llegan en cada una de las request
