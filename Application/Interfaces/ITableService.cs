@@ -12,10 +12,11 @@ namespace Application.Interfaces
         Task<TableDto?> GetByNumberAsync( int num );
         Task<IEnumerable<TableDto>> GetOccupiedTablesAsync();
         Task<IEnumerable<TableDto>> GetReleasedTablesAsync();
+        Task AddAsync(CreateTableDto objModel);
         Task UpdateAsync( int id, UpdateTableDto objModel );
         Task RemoveAsync( int id );
         Task OccupyAsync( int id );
         Task ReleaseAsync( int id );
-        void Add(CreateTableDto objModel); 
+        
     }
 }
