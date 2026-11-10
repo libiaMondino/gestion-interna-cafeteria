@@ -33,7 +33,11 @@ namespace Presentation.Middlewares
                 case ArgumentException: // Ej: Cuando se ingresa numero de mesa menor o igual a cero
                     statusCode = StatusCodes.Status400BadRequest;
                     message = exception.Message;
-                    break; 
+                    break;
+                case KeyNotFoundException:
+                    statusCode = StatusCodes.Status404NotFound;
+                    message = exception.Message;
+                    break;
                 default:
                     logger.LogError(exception, "Error no controlado");
                     statusCode = StatusCodes.Status500InternalServerError;
