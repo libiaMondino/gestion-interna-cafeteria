@@ -1,15 +1,16 @@
-using Application.Interfaces;
-using Application.Services;
-using Domain.Interfaces;
-using Infrastructure;
-using Infrastructure.Repositories;
-//using Infrastructure.Security;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.IdentityModel.Tokens;
+
+using Domain.Interfaces;
+using Application.Interfaces;
+using Application.Services;
+using Infrastructure;
+using Infrastructure.Repositories;
+using Infrastructure.Security;
 using Presentation.Middlewares;
-using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,29 +20,36 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
 options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
 //Inyección de dependencias
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ITableService, TableService>();
-//builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-/*Verificación de tokens que llegan en cada una de las request
+
+// Verificación de tokens que llegan en cada una de las request
 builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+    // Se crea un objeto de reglas para la autenticación token
+    options.TokenValidationParameters = new() 
     {
-        options.TokenValidationParameters = new()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateAntiForgeryTokenAttribute IssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Authentication:Issuer"],
-            ValidAudience = builder.Configuration["Authentication:Audience"],
-            IssuerSigningKeyResolver = new SymmetricSecurityKey(
-                Encoding.ASCII.GetBytes(builder.Configuration["Authentication: SecretForKey"]!))
-        };
-    });*/
+        // Validaciones
+        ValidateIssuer = true, // quién lo emitió
+        ValidateAudience = true, // para quién fue emitido
+        ValidateIssuerSigningKey = true, // ¿ La firma es auténtica?
+
+        // Valores esperados
+        ValidIssuer = builder.Configuration["Authentication:Issuer"],
+        ValidAudience = builder.Configuration["Authentication:Audience"],
+
+        // // Carga la clave secreta para verificar la firma del token.
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.ASCII.GetBytes(builder.Configuration["Authentication:SecretForKey"]!))
+    };
+});
 
 var app = builder.Build();
 
