@@ -25,6 +25,7 @@ namespace Domain.Interfaces
         // Para contar todos los registros
         // Ahorra memoria porque obliga a la base de datos a hacer este trabajo y no la app, devolviendo un entero a través de la red
         Task<int> FilteredCountAsync(Expression<Func<TEntity, bool>>? predicate = null);
+        //Task SaveChangesAsync();
 
         // Para liberar de la memoria los recursos que no se necesiten(ej: conexión activa de la BDD)
         void Dispose();

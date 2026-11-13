@@ -2,11 +2,9 @@
 using Application.Models.Users;
 using Domain.Entities;
 using Domain.Interfaces;
-using Infrastructure.Repositories;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
@@ -18,7 +16,7 @@ namespace Infrastructure.Security
     {
         private readonly IGenericRepository<User> _repository;
         private readonly IConfiguration _configuration;
-        public AuthenticationService(GenericRepository<User> repository, IConfiguration configuration)
+        public AuthenticationService(IGenericRepository<User> repository, IConfiguration configuration)
         {
             _repository = repository;
             _configuration = configuration;
@@ -27,8 +25,12 @@ namespace Infrastructure.Security
         public async Task<string> Authenticate( CredentialsLoginDto credentials)
         {
             // Busca si el usuario existe
-            var user= await _repository.GetByFilterAsync(u => credentials.UserEmail == u.UserEmail);
-            if (user is null || user.UserPasswordHash != credentials.UserPasswordHash)
+            var user = await _repository.GetByFilterAsync(u => credentials.UserEmail == u.UserEmail);
+            var isUserNotFound= user is null;
+            var isUserInactive = user?.IsActive == false;
+            var isPasswordInvalid= user?.UserPasswordHash != credentials.UserPasswordHash;
+
+            if ( isUserNotFound || isUserInactive || isPasswordInvalid)
                 throw new InvalidCredentialException();
 
             // Clave secreta y algoritmo de firma

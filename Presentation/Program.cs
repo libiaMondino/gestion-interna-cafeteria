@@ -33,8 +33,9 @@ builder.Services.AddScoped<ITableService, TableService>();
 builder.Services.AddAuthentication("Bearer")
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;
     // Se crea un objeto de reglas para la autenticación token
-    options.TokenValidationParameters = new() 
+    options.TokenValidationParameters = new()
     {
         // Validaciones
         ValidateIssuer = true, // quién lo emitió
@@ -47,7 +48,14 @@ builder.Services.AddAuthentication("Bearer")
 
         // // Carga la clave secreta para verificar la firma del token.
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.ASCII.GetBytes(builder.Configuration["Authentication:SecretForKey"]!))
+            Encoding.ASCII.GetBytes(builder.Configuration["Authentication:SecretForKey"]!)),
+
+        // Le indica a [Authorize(Roles = "...")] qué claim leer del token
+        RoleClaimType = "role",
+        NameClaimType = "sub",
+
+        // Elimina los 5 minutos de tolerancia por defecto cuando expira el token
+        ClockSkew = TimeSpan.Zero
     };
 });
 

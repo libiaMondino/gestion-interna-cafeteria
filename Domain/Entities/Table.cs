@@ -11,6 +11,7 @@ namespace Domain.Entities
         public int Capacity { get; set; }
         public string Status { get; private set; } = "Libre";
 
+
         // Contructor con validación
         public Table(int number, int capacity)
         {
@@ -35,5 +36,7 @@ namespace Domain.Entities
                 throw new ArgumentException("La mesa ya estaba liberada");
             Status = "Libre";
         }
+
+        
     }
 }

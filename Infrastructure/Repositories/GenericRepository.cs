@@ -74,6 +74,10 @@ namespace Infrastructure.Repositories
             return await _context.Set<TEntity>().Where(predicate).CountAsync();
         }
 
+        /*public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }*/
         public void Dispose() {
             // Le está ordenando a la instancia de EF(el DbContext) que ejecute su propia rutina de limpieza(Más allá del Garbage Colector de .NET)
             // 1. Cierra conexiones físicas con la BDD

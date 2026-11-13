@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Application.Models.Tables;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,6 +18,7 @@ namespace Presentation.Controllers
 
         // GET: api/tables
         [HttpGet]
+        [Authorize(Roles ="Admin,Waiter")]
         public async Task<ActionResult<IEnumerable<TableDto>>> GetAll()
         {
             var tables = await _service.GetAllAsync();
@@ -25,6 +27,7 @@ namespace Presentation.Controllers
 
         // GET /api/tables/search?num=5
         [HttpGet("search")]
+        [Authorize(Roles ="Admin,Waiter")]
         public async Task<ActionResult<TableDto>> GetByNumberAsync([FromQuery] int num)
         {
             if (num <= 0)
@@ -38,6 +41,7 @@ namespace Presentation.Controllers
 
         // GET /api/tables/occupied
         [HttpGet("occupied")]
+        [Authorize(Roles = "Admin,Waiter")]
         public async Task<ActionResult<IEnumerable<TableDto>>> GetOccupiedTablesAsync()
         {
             var tables = await _service.GetOccupiedTablesAsync();
@@ -46,6 +50,7 @@ namespace Presentation.Controllers
 
         // GET /api/tables/released
         [HttpGet("released")]
+        [Authorize(Roles = "Admin,Waiter")]
         public async Task<ActionResult<IEnumerable<TableDto>>> GetReleasedTablesAsync()
         {
             var tables = await _service.GetReleasedTablesAsync();
@@ -54,6 +59,7 @@ namespace Presentation.Controllers
 
         // POST
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> AddAsync([FromBody] CreateTableDto objModel)
         {
             // Validaciones
@@ -68,6 +74,7 @@ namespace Presentation.Controllers
 
         // PUT /api/tables/{id}
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> UpdateAsync(
             [FromRoute] int id,
             [FromBody] UpdateTableDto objModel)
@@ -86,6 +93,7 @@ namespace Presentation.Controllers
 
         // DELETE /api/tables/{id}
         [HttpDelete("{id}")]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult> RemoveAsync([FromRoute] int id)
         {
             if (id <= 0)
@@ -96,6 +104,7 @@ namespace Presentation.Controllers
 
         // PUT /api/tables/{id}/status/occupied
         [HttpPut("{id}/status/occupied")]
+        [Authorize(Roles ="Waiter")]
         public async Task<ActionResult> OccupyAsync([FromRoute] int id)
         {
             if (id <= 0)
@@ -106,6 +115,7 @@ namespace Presentation.Controllers
 
         // PUT /api/tables/{id}/status/released
         [HttpPut("{id}/status/released")]
+        [Authorize(Roles ="Waiter")]
         public async Task<ActionResult> ReleaseAsync([FromRoute]int id)
         {
             if (id <= 0)

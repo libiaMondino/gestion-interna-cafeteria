@@ -38,6 +38,10 @@ namespace Presentation.Middlewares
                     statusCode = StatusCodes.Status404NotFound;
                     message = exception.Message;
                     break;
+                case InvalidOperationException:
+                    statusCode = StatusCodes.Status409Conflict;
+                    message = exception.Message;
+                    break;
                 default:
                     logger.LogError(exception, "Error no controlado");
                     statusCode = StatusCodes.Status500InternalServerError;
