@@ -28,6 +28,12 @@ namespace Domain.Entities
                     "El nombre del insumo no puede estar vacío.");
             }
 
+            if (name.Trim().Length > 100)
+            {
+                throw new ArgumentException(
+                    "El nombre del insumo no puede superar los 100 caracteres.");
+            }
+
             Name = name.Trim();
         }
 
@@ -37,6 +43,12 @@ namespace Domain.Entities
             {
                 throw new ArgumentException(
                     "La unidad de medida no puede estar vacía.");
+            }
+
+            if (unitOfMeasure.Trim().Length > 50)
+            {
+                throw new ArgumentException(
+                    "La unidad de medida no puede superar los 50 caracteres.");
             }
 
             if (UnitOfMeasure == unitOfMeasure.Trim())
