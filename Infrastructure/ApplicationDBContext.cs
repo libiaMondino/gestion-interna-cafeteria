@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Infrastructure
 {
@@ -17,6 +18,7 @@ namespace Infrastructure
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Table> Tables { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<RecipeDetail> RecipeDetails { get; set; }
         public DbSet<StockMovement> StockMovements { get; set; }
@@ -113,6 +115,31 @@ namespace Infrastructure
                     .IsRequired();
             });
 
+            // Configuración de Tables
+            modelBuilder.Entity<Table>( entity =>
+            {
+                entity.HasKey( t => t.Id);
+                entity.Property( t => t.Number)
+                    .IsRequired();
+                entity.HasIndex(t => t.Number)
+                    .IsUnique();
+                entity.Property(t => t.Capacity)
+                    .IsRequired();
+                entity.Property(t => t.Status)
+                    .HasMaxLength(10)
+                    .IsRequired()
+                    .HasDefaultValue("Libre");
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Table_Number", "[Number] > 0");
+                    t.HasCheckConstraint("CK_Table_Capacity", "[Capacity] > 0");
+                    t.HasCheckConstraint("CK_Table_Status", "[Status] IN ('Libre', 'Ocupada')"); // Asegura que se respeten los valores del enum
+
+                });
+
+            });
+
             // Configuración de Ingredient
             modelBuilder.Entity<Ingredient>(entity =>
             {
@@ -175,65 +202,66 @@ namespace Infrastructure
                     );
                 });
 
-                // Configuración de StockMovement
-                modelBuilder.Entity<StockMovement>(entity =>
+            });
+
+            // Configuración de StockMovement
+            modelBuilder.Entity<StockMovement>(entity =>
+            {
+                entity.HasKey(m => m.Id);
+
+                entity.Property(m => m.DateTime)
+                    .IsRequired();
+
+                entity.Property(m => m.Quantity)
+                    .HasPrecision(18, 4);
+
+                entity.Property(m => m.Reason)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.Property(m => m.MovementType)
+                    .HasConversion<string>()
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(m => m.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Product>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Ingredient>()
+                    .WithMany()
+                    .HasForeignKey(m => m.IngredientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<OrderDetail>()
+                    .WithMany()
+                    .HasForeignKey(m => m.OrderDetailId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.ToTable(t =>
                 {
-                    entity.HasKey(m => m.Id);
+                    t.HasCheckConstraint(
+                        "CK_StockMovement_Quantity",
+                        "[Quantity] > 0"
+                    );
 
-                    entity.Property(m => m.DateTime)
-                        .IsRequired();
+                    t.HasCheckConstraint(
+                        "CK_StockMovement_Target",
+                        "([ProductId] IS NOT NULL AND [IngredientId] IS NULL) OR " +
+                        "([ProductId] IS NULL AND [IngredientId] IS NOT NULL)"
+                    );
 
-                    entity.Property(m => m.Quantity)
-                        .HasPrecision(18, 4);
-
-                    entity.Property(m => m.Reason)
-                        .IsRequired()
-                        .HasMaxLength(255);
-
-                    entity.Property(m => m.MovementType)
-                        .HasConversion<string>()
-                        .HasMaxLength(10)
-                        .IsRequired();
-
-                    entity.HasOne<User>()
-                        .WithMany()
-                        .HasForeignKey(m => m.UserId)
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    entity.HasOne<Product>()
-                        .WithMany()
-                        .HasForeignKey(m => m.ProductId)
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    entity.HasOne<Ingredient>()
-                        .WithMany()
-                        .HasForeignKey(m => m.IngredientId)
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    entity.HasOne<OrderDetail>()
-                        .WithMany()
-                        .HasForeignKey(m => m.OrderDetailId)
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    entity.ToTable(t =>
-                    {
-                        t.HasCheckConstraint(
-                            "CK_StockMovement_Quantity",
-                            "[Quantity] > 0"
-                        );
-
-                        t.HasCheckConstraint(
-                            "CK_StockMovement_Target",
-                            "([ProductId] IS NOT NULL AND [IngredientId] IS NULL) OR " +
-                            "([ProductId] IS NULL AND [IngredientId] IS NOT NULL)"
-                        );
-
-                        t.HasCheckConstraint(
-                            "CK_StockMovement_TypeAndDetail",
-                            "([MovementType] = 'In' AND [OrderDetailId] IS NULL) OR " +
-                            "([MovementType] = 'Out' AND [OrderDetailId] IS NOT NULL)"
-                        );
-                    });
+                    t.HasCheckConstraint(
+                        "CK_StockMovement_TypeAndDetail",
+                        "([MovementType] = 'In' AND [OrderDetailId] IS NULL) OR " +
+                        "([MovementType] = 'Out' AND [OrderDetailId] IS NOT NULL)"
+                    );
                 });
             });
 

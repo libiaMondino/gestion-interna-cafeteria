@@ -6,6 +6,7 @@ namespace Presentation.Middlewares
         ILogger<GlobalExceptionHandlingMiddleware> logger
         )
     {
+        // Evita tener que estar escribiendo try/catch en los controllers
         public async Task InvokeAsync(HttpContext context)
         {
             try
@@ -29,6 +30,10 @@ namespace Presentation.Middlewares
                     statusCode = StatusCodes.Status401Unauthorized;
                     message = exception.Message;
                     break;
+                case ArgumentException: // Ej: Cuando se ingresa numero de mesa menor o igual a cero
+                    statusCode = StatusCodes.Status400BadRequest;
+                    message = exception.Message;
+                    break; 
                 default:
                     logger.LogError(exception, "Error no controlado");
                     statusCode = StatusCodes.Status500InternalServerError;
