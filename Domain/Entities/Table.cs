@@ -1,16 +1,17 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using Domain.Enums;
+
 namespace Domain.Entities
 {
     public class Table
     {
         // Propiedades
         public int Id { get; set; }
+
         public int Number { get; set; }
+
         public int Capacity { get; set; }
+
         public bool Status { get; private set; }
 
         // Propiedad de navegación
@@ -21,24 +22,37 @@ namespace Domain.Entities
         public Table(int number, int capacity)
         {
             if (number <= 0)
-                throw new ArgumentOutOfRangeException("Table number must be larger than zero");
+                throw new ArgumentOutOfRangeException(
+                    nameof(number),
+                    "El número de mesa debe ser mayor que cero.");
+
             if (capacity <= 0)
-                throw new ArgumentOutOfRangeException("Table capacity must be larger than zero");
-            
+                throw new ArgumentOutOfRangeException(
+                    nameof(capacity),
+                    "La capacidad debe ser mayor que cero.");
+
             Number = number;
             Capacity = capacity;
-            Status = true;     
+            Status = true;
         }
 
         // Métodos
         public void Occupy()
         {
+            if (!Status)
+                throw new InvalidOperationException(
+                    "La mesa ya está ocupada.");
 
+            Status = false;
         }
 
         public void Release()
         {
+            if (Status)
+                throw new InvalidOperationException(
+                    "La mesa ya está libre.");
 
+            Status = true;
         }
     }
 }
