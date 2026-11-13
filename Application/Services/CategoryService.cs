@@ -1,33 +1,118 @@
 using Application.Interfaces;
 using Application.Models.Categories;
-
+using Domain.Entities;
+using Domain.Interfaces;
 namespace Application.Services
 {
     public class CategoryService : ICategoryService
     {
-        public Task<List<CategoryDto>> GetAllAsync()
+        
+        private readonly IGenericRepository<Category> _categoryRepository; //BUSCAR MODIFICAR ELIMINAR CATEGORIA
+        private readonly IGenericRepository<Product> _productRepository;// COMPROBAR SI EXISTEN PRODUCTOS ASOCIADOS ANTES DE ELIMINAR UNA CATEEGORIA
+
+        public CategoryService(
+            IGenericRepository<Category> categoryRepository,
+            IGenericRepository<Product> productRepository)
         {
-            throw new NotImplementedException();
+            _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
         }
 
-        public Task<CategoryDto?> GetByIdAsync(int id)
+        public async Task<List<CategoryDto>> GetAllAsync()
         {
-            throw new NotImplementedException();
+             var categories = await _categoryRepository.GetAllAsync();
+
+            return categories.Select(category => new CategoryDto
+            {
+                Id = category.CategoryId,
+                Name = category.CategoryName,
+                Description = category.CategoryDescription
+            }).ToList();
         }
 
-        public Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto)
+        
+        public async Task<CategoryDto?> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            var category = await _categoryRepository.GetIdAsync(id);
+
+            if (category == null)
+            {
+                return null;
+            }
+
+            return new CategoryDto
+            {
+                Id = category.CategoryId,
+                Name = category.CategoryName,
+                Description = category.CategoryDescription
+            };
         }
 
-        public Task<bool> UpdateAsync(int id, UpdateCategoryDto categoryDto)
+
+       
+           
+    public Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto)
+    {
+        var category = new Category(categoryDto.Name)
         {
-            throw new NotImplementedException();
+            CategoryDescription = categoryDto.Description
+        };
+
+        _categoryRepository.Add(category);
+
+        var result = new CategoryDto
+        {
+            Id = category.CategoryId,
+            Name = category.CategoryName,
+            Description = category.CategoryDescription
+        };
+
+        return Task.FromResult(result);
+    }
+
+        
+
+        
+        public async Task<bool> UpdateAsync(int id, UpdateCategoryDto categoryDto)
+        {
+            var category = await _categoryRepository.GetIdAsync(id);
+
+            if (category == null)
+            {
+                return false;
+            }
+
+            category.ChangeName(categoryDto.Name);
+
+            _categoryRepository.Update(category);
+
+            return true;
         }
 
-        public Task<bool> DeleteAsync(int id)
+
+       
+        public async Task<bool> DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var category = await _categoryRepository.GetIdAsync(id);
+
+            if (category == null)
+            {
+                return false;
+            }
+
+            var products = await _productRepository.GetByFilterAsync(
+                product => product.CategoryId == id
+            );
+
+            if (products != null)
+            {
+                return false;
+            }
+
+            _categoryRepository.Remove(category);
+
+            return true;
         }
+
     }
 }
