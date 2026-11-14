@@ -2,6 +2,7 @@
 using Application.Models;
 using Domain.Entities;
 using Domain.Interfaces;
+using Domain.Exceptions;
 
 namespace Application.Services
 {
@@ -107,7 +108,7 @@ namespace Application.Services
             {
                 if (ingredient.QuantityStock > 0)
                 {
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         "No se puede cambiar la unidad de medida mientras haya stock.");
                 }
 
@@ -119,7 +120,7 @@ namespace Application.Services
 
                 if (recipe != null || movement != null)
                 {
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         "No se puede cambiar la unidad de medida de un insumo con recetas o movimientos asociados.");
                 }
             }
@@ -144,7 +145,7 @@ namespace Application.Services
 
             if (ingredient.QuantityStock > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se puede eliminar un insumo que tiene stock.");
             }
 
@@ -153,7 +154,7 @@ namespace Application.Services
 
             if (recipe != null)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se puede eliminar un insumo asociado a una receta.");
             }
 
@@ -162,7 +163,7 @@ namespace Application.Services
 
             if (movement != null)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se puede eliminar un insumo con movimientos registrados.");
             }
 

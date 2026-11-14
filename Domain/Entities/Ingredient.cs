@@ -1,4 +1,5 @@
 ﻿using System;
+using Domain.Exceptions;
 
 namespace Domain.Entities
 {
@@ -58,7 +59,7 @@ namespace Domain.Entities
 
             if (QuantityStock > 0)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No se puede cambiar la unidad de medida mientras haya stock.");
             }
 
@@ -97,7 +98,7 @@ namespace Domain.Entities
 
             if (!HasSufficientStock(quantity))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "No hay stock suficiente.");
             }
 
