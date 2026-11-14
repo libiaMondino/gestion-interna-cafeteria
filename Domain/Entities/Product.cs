@@ -25,6 +25,9 @@ namespace Domain.Entities
 
         public int CategoryId { get; set; }
 
+        public ICollection<RecipeDetail> RecipeDetails { get; set; }
+            = new List<RecipeDetail>();
+
         // Propiedades de navegación
         public Category Category { get; set; } = null!;
 
