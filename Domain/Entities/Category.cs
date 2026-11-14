@@ -1,29 +1,38 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Domain.Entities
 {
     public class Category
-    {   // atributos
-        public int CategoryId { get; set; } // Guid
+    {
+        // Atributos
+        public int CategoryId { get; set; }
+
         public string CategoryName { get; private set; } = string.Empty;
-        public string? CategoryDescription { get; set; } = string.Empty;
-        //constructor
+
+        public string? CategoryDescription { get; set; }
+
+        // Propiedad de navegación
+        public ICollection<Product> Products { get; set; }
+            = new List<Product>();
+
+        // Constructor
         public Category(string categoryName)
         {
-            ChangeName(categoryName);//valida que el nombre este
+            ChangeName(categoryName);
         }
-        //método
+
+        // Métodos
         public void ChangeName(string name)
         {
-            if (string.IsNullOrWhiteSpace(name)) // para comprobar si el valor es nulo, cadena vacía o que contiene espacios
+            if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentException("El nombre de la categoría no puede estar vacío.");
-            }   //throw.. indica que el valor recibido no es válido, interrumpe la ejecución del metodo, no se cambia el nombre
-            CategoryName = name;
+                throw new ArgumentException(
+                    "El nombre de la categoría no puede estar vacío.");
+            }
 
+            CategoryName = name.Trim();
         }
-
     }
 }

@@ -1,4 +1,5 @@
-﻿using Application.Models;
+﻿using Application.Models.Ingredients;
+using Application.Models;
 namespace Application.Interfaces
 {
     public interface IIngredientService

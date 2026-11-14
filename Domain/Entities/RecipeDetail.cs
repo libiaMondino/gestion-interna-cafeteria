@@ -11,6 +11,11 @@ namespace Domain.Entities
         public int ProductId { get; private set; }
         public int IngredientId { get; private set; }
 
+        public Product Product { get; set; } = null!;
+        public Ingredient Ingredient { get; set; } = null!;
+
+        private RecipeDetail() { }
+
         public RecipeDetail(
             int productId,
             int ingredientId,

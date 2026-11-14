@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Domain.Enums;
@@ -7,6 +8,7 @@ namespace Domain.Entities
 {
     public class Order
     {
+        // Propiedades
         public int Id { get; set; }
 
         public DateTime DateTime { get; set; }
@@ -41,8 +43,11 @@ namespace Domain.Entities
                 throw new InvalidOperationException(
                     "Solo se pueden agregar comandas pendientes.");
 
-            kitchenOrder.OrderId = Id;
+            if (KitchenOrders.Contains(kitchenOrder))
+                throw new InvalidOperationException(
+                    "La comanda ya pertenece a este pedido.");
 
+            kitchenOrder.Order = this;
             KitchenOrders.Add(kitchenOrder);
 
             CalculateTotal();

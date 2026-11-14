@@ -16,14 +16,21 @@ namespace Domain.Entities
         public int? IngredientId { get; private set; }
         public int? OrderDetailId { get; private set; }
 
+        public User User { get; set; } = null!;
+        public Product? Product { get; set; }
+        public Ingredient? Ingredient { get; set; }
+        public OrderDetail? OrderDetail { get; set; }
+
+        private StockMovement() { }
+
         public StockMovement(
             decimal quantity,
             StockMovementType movementType,
             string reason,
             int userId,
-            int? productId,
-            int? ingredientId,
-            int? orderDetailId)
+            int? productId = null,
+            int? ingredientId = null,
+            int? orderDetailId = null)
         {
             Quantity = quantity;
             MovementType = movementType;

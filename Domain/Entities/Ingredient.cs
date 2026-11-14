@@ -11,6 +11,10 @@ namespace Domain.Entities
         public string UnitOfMeasure { get; private set; } = string.Empty;
         public decimal MinimumStock { get; private set; }
 
+        public ICollection<RecipeDetail> RecipeDetails { get; set; } = new List<RecipeDetail>();
+
+        private Ingredient() { }
+
         public Ingredient(
             string name,
             string unitOfMeasure,
@@ -107,6 +111,12 @@ namespace Domain.Entities
 
         public bool HasSufficientStock(decimal quantity)
         {
+            if (quantity <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(quantity),
+                    "La cantidad debe ser mayor que cero.");
+            }
+
             return QuantityStock >= quantity;
         }
 

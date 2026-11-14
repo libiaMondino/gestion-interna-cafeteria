@@ -1,39 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using Domain.Enums;
+
 namespace Domain.Entities
 {
     public class Table
     {
+        // Propiedades
         public int Id { get; set; }
-        public int Number { get; set; }
-        public int Capacity { get; set; }
-        public string Status { get; private set; } = "Libre";
 
-        // Contructor con validación
+        public int Number { get; set; }
+
+        public int Capacity { get; set; }
+
+        public bool Status { get; private set; }
+
+        // Propiedad de navegación
+        public ICollection<Order> Orders { get; set; }
+            = new List<Order>();
+
+        // Constructor con validación
         public Table(int number, int capacity)
         {
             if (number <= 0)
-                throw new ArgumentOutOfRangeException("El número de la mesa debe ser mayor a cero");
+                throw new ArgumentOutOfRangeException(
+                    nameof(number),
+                    "El número de mesa debe ser mayor que cero.");
+
             if (capacity <= 0)
-                throw new ArgumentOutOfRangeException("La capacidad máxima de personas de la mesa debe ser mayor a cero");
-            
+                throw new ArgumentOutOfRangeException(
+                    nameof(capacity),
+                    "La capacidad debe ser mayor que cero.");
+
             Number = number;
             Capacity = capacity;
-            Status = "Libre";     
+            Status = true;
         }
+
+        // Métodos
         public void Occupy()
         {
-            if (Status == "Ocupada")
-                throw new ArgumentException("La mesa ya está ocupada");
-            Status = "Ocupada";
+            if (!Status)
+                throw new InvalidOperationException(
+                    "La mesa ya está ocupada.");
+
+            Status = false;
         }
+
         public void Release()
         {
-            if (Status == "Libre")
-                throw new ArgumentException("La mesa ya estaba liberada");
-            Status = "Libre";
+            if (Status)
+                throw new InvalidOperationException(
+                    "La mesa ya está libre.");
+
+            Status = true;
         }
     }
 }

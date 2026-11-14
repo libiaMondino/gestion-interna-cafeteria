@@ -1,4 +1,5 @@
-﻿using Application.Interfaces;
+﻿using Application.Models.Ingredients;
+using Application.Interfaces;
 using Application.Models;
 using Domain.Entities;
 using Domain.Interfaces;
