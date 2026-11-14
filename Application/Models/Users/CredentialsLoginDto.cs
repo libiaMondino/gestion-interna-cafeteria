@@ -9,7 +9,5 @@ namespace Application.Models.Users
         // record: es una clase de tipo referencia(apunta a un bloque de memoria).
         // Su objetivo es transportar de manera segura e INMUTABLE(solo lectura) por toda la aplicación
         string UserEmail, 
-        string UserPasswordHash)
-    {
-    }
+        string UserPasswordHash);
 }
