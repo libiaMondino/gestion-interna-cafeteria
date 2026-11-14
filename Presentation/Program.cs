@@ -2,6 +2,7 @@ using Application.Interfaces;
 using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
+using Application.Services;
 //using Infrastructure.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ builder.Services.AddOpenApi();
 
 //Inyección de dependencias
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
+builder.Services.AddScoped<IIngredientService, IngredientService>();
 
 //builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
