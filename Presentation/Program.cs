@@ -27,6 +27,7 @@ builder.Services.AddAuthorization();
 //Inyección de dependencias-----------------------
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
 builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IRecipeDetailService, RecipeDetailService>();
 
 //builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
