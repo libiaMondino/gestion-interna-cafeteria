@@ -3,6 +3,7 @@ using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
 using Application.Services;
+using Infrastructure.Transactions;
 //using Infrastructure.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeDetailService, RecipeDetailService>();
-
+builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 //builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 builder.Services.AddScoped<ICategoryService, CategoryService>();
