@@ -2,6 +2,7 @@ using Application.Interfaces;
 using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
+using Application.Services;
 //using Infrastructure.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,10 +22,18 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-//Inyección de dependencias
+//Inyección de dependencias-----------------------
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
 
 //builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+// Registra CategoryService para que los controladores puedan utilizarlo
+// a través de ICategoryService mediante inyección de dependencias.
+
+// Registra UserService para que los controladores puedan utilizarlo
+// mediante la interfaz IUserService.
+builder.Services.AddScoped<IUserService, UserService>();
 
 /*Verificación de tokens que llegan en cada una de las request
 builder.Services.AddAuthentication("Bearer")
