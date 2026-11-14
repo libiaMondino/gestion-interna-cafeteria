@@ -10,9 +10,9 @@ namespace Domain.Entities
         public string CategoryName { get; private set; } = string.Empty;
         public string? CategoryDescription { get; set; } = string.Empty;
         //constructor
-        public Category(string name)
+        public Category(string categoryName)
         {
-            ChangeName(name);//valida que el nombre este
+            ChangeName(categoryName);//valida que el nombre este
         }
         //método
         public void ChangeName(string name)
