@@ -16,10 +16,15 @@ namespace Infrastructure.Security
     {
         private readonly IGenericRepository<User> _repository;
         private readonly IConfiguration _configuration;
-        public AuthenticationService(IGenericRepository<User> repository, IConfiguration configuration)
+        private readonly IPasswordHasherService _passwordService;
+        public AuthenticationService(
+            IGenericRepository<User> repository, 
+            IConfiguration configuration,
+            IPasswordHasherService passwordService)
         {
             _repository = repository;
             _configuration = configuration;
+            _passwordService = passwordService;
         }
 
         public async Task<string> Authenticate( CredentialsLoginDto credentials)
@@ -28,10 +33,15 @@ namespace Infrastructure.Security
             var user = await _repository.GetByFilterAsync(u => credentials.UserEmail == u.UserEmail);
             var isUserNotFound= user is null;
             var isUserInactive = user?.IsActive == false;
-            var isPasswordInvalid= user?.UserPasswordHash != credentials.UserPasswordHash;
 
-            if ( isUserNotFound || isUserInactive || isPasswordInvalid)
+            if (isUserNotFound || isUserInactive)
                 throw new InvalidCredentialException();
+
+            var isPasswordInvalid = !_passwordService.VerifyUserPassword( credentials.UserPassword, user.UserPasswordHash);
+
+            if (isPasswordInvalid)
+                throw new InvalidCredentialException();
+            
 
             // Clave secreta y algoritmo de firma
             var securityKey = new SymmetricSecurityKey(
