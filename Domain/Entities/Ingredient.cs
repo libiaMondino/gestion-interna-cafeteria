@@ -78,6 +78,18 @@ namespace Domain.Entities
                     "El stock mínimo no puede ser negativo.");
             }
 
+            if (decimal.Round(minimumStock, 4) != minimumStock)
+            {
+                throw new ArgumentException(
+                    "El stock mínimo admite como máximo cuatro decimales.");
+            }
+
+            if (minimumStock > 99999999999999.9999m)
+            {
+                throw new ArgumentException(
+                    "El stock mínimo supera el máximo permitido.");
+            }
+
             MinimumStock = minimumStock;
         }
 

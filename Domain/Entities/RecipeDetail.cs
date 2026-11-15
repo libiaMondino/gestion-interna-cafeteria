@@ -47,6 +47,18 @@ namespace Domain.Entities
                     "La cantidad necesaria del insumo debe ser mayor que cero.");
             }
 
+            if (decimal.Round(requiredQuantity, 4) != requiredQuantity)
+            {
+                throw new ArgumentException(
+                    "La cantidad necesaria admite como máximo cuatro decimales.");
+            }
+
+            if (requiredQuantity > 99999999999999.9999m)
+            {
+                throw new ArgumentException(
+                    "La cantidad necesaria supera el máximo permitido.");
+            }
+
             RequiredQuantity = requiredQuantity;
         }
         public decimal CalculateConsumption(int units)
