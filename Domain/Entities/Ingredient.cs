@@ -1,27 +1,81 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Domain.Entities
 {
     public class Ingredient
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public decimal QuantityStock { get; set; }
-        public string UnitOfMeasure { get; set; } = string.Empty; // evaluar si enum
+        public string Name { get; private set; } = string.Empty;
+        public decimal QuantityStock { get; private set; }
+        public string UnitOfMeasure { get; private set; } = string.Empty;
+        public decimal MinimumStock { get; private set; }
 
-        public decimal MinimumStock { get; set; }
+        public ICollection<RecipeDetail> RecipeDetails { get; set; }
+            = new List<RecipeDetail>();
 
-        public void RegisterStockEntry( decimal quantity) { }
-        public void RegisterStockExit( decimal quantity) { }
+        private Ingredient() { }
+
+        public Ingredient(string name, string unitOfMeasure,
+            decimal minimumStock)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException(
+                    "El nombre del ingrediente es obligatorio.");
+
+            if (string.IsNullOrWhiteSpace(unitOfMeasure))
+                throw new ArgumentException(
+                    "La unidad de medida es obligatoria.");
+
+            if (minimumStock < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(minimumStock),
+                    "El stock mínimo no puede ser negativo.");
+
+            Name = name.Trim();
+            UnitOfMeasure = unitOfMeasure.Trim();
+            MinimumStock = minimumStock;
+            QuantityStock = 0;
+        }
+
+        public void RegisterStockEntry(decimal quantity)
+        {
+            if (quantity <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(quantity),
+                    "La cantidad ingresada debe ser mayor que cero.");
+
+            QuantityStock += quantity;
+        }
+
+        public void RegisterStockExit(decimal quantity)
+        {
+            if (quantity <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(quantity),
+                    "La cantidad retirada debe ser mayor que cero.");
+
+            if (!HasSufficientStock(quantity))
+                throw new InvalidOperationException(
+                    "No hay stock suficiente para realizar la salida.");
+
+            QuantityStock -= quantity;
+        }
+
         public bool HasSufficientStock(decimal quantity)
         {
-            return true; // No es así el método, está puesto así para que no lance error por falta de return
+            if (quantity <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(quantity),
+                    "La cantidad debe ser mayor que cero.");
+
+            return QuantityStock >= quantity;
         }
+
         public bool IsBelowMinimum()
         {
-            return true;// No es así el método, está puesto así para que no lance error por falta de return
+            return QuantityStock < MinimumStock;
         }
     }
 }

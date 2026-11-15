@@ -1,17 +1,20 @@
+
 using Application.Models.Categories;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Application.Interfaces
 {
     public interface ICategoryService
     {
-        Task<List<CategoryDto>> GetAllAsync(); //obtener todas las categorias
+        Task<List<CategoryDto>> GetAllAsync();
 
-        Task<CategoryDto?> GetByIdAsync(int id);// buscar una categoria por su identificador
-        //? que puede devolver null
-        Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto); // crear una categoria
+        Task<CategoryDto?> GetByIdAsync(int id);
+
+        Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto);
 
         Task<bool> UpdateAsync(int id, UpdateCategoryDto categoryDto);
 
-        Task<bool> DeleteAsync(int id); //solicitar la eliminacion de una categoria
+        Task<bool> DeleteAsync(int id);
     }
 }

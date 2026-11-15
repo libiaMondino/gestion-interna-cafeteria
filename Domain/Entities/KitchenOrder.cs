@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using Domain.Enums;
 
@@ -6,6 +7,7 @@ namespace Domain.Entities
 {
     public class KitchenOrder
     {
+        // Propiedades
         public int Id { get; set; }
 
         public DateTime? SentDateTime { get; set; }
@@ -15,7 +17,9 @@ namespace Domain.Entities
 
         public int OrderId { get; set; }
 
-        // Propiedad de navegación
+        // Propiedades de navegación
+        public Order Order { get; set; } = null!;
+
         public ICollection<OrderDetail> OrderDetails { get; set; }
             = new List<OrderDetail>();
 
@@ -38,6 +42,8 @@ namespace Domain.Entities
                     "El precio unitario no puede ser negativo.");
 
             orderDetail.SubTotal = orderDetail.CalculateSubtotal();
+
+            orderDetail.KitchenOrder = this;
 
             OrderDetails.Add(orderDetail);
         }

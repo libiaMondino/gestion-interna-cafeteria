@@ -23,13 +23,19 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
-//Inyección de dependencias
+//Inyección de dependencias-----------------------
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ITableService, TableService>();
+// Registra CategoryService para que los controladores puedan utilizarlo
+// a través de ICategoryService mediante inyección de dependencias.
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+// Registra UserService para que los controladores puedan utilizarlo
+// mediante la interfaz IUserService.
+builder.Services.AddScoped<IUserService, UserService>();
 
+//Verificación de tokens que llegan en cada una de las request
 
-// Verificación de tokens que llegan en cada una de las request
 builder.Services.AddAuthentication("Bearer")
 .AddJwtBearer(options =>
 {
