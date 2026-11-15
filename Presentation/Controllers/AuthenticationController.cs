@@ -1,23 +1,28 @@
-﻿using Application.Models.Users;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Application.Interfaces;
+using Application.Models.Users;
+
 namespace Presentation.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/authentication")]
     public class AuthenticationController : ControllerBase
     {
-        private readonly IAuthenticationService _service;
-        public AuthenticationController( IAuthenticationService service)
+        private readonly IAuthenticationService _authenticationService;
+
+        public AuthenticationController(IAuthenticationService authenticationService)
         {
-            _service = service;
+            _authenticationService = authenticationService;
         }
-        [HttpPost("authenticate")]
-        public async Task<ActionResult<string>> Authenticate( [FromBody] CredentialsLoginDto credentials)
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(CredentialsLoginDto credentials)
         {
-            string token = await _service.Authenticate(credentials);
-            return Ok(token);
+            var token = await _authenticationService.Authenticate(credentials);
+
+            return Ok(new { token });
         }
     }
 }

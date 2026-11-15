@@ -1,72 +1,89 @@
-﻿using Application.Interfaces;
+using Application.Exceptions;
+using Application.Interfaces;
 using Application.Models.Users;
 using Domain.Entities;
 using Domain.Interfaces;
-
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Authentication;
 using System.Security.Claims;
-using System.Text;
+
 
 namespace Infrastructure.Security
 {
     public class AuthenticationService : IAuthenticationService
     {
-        private readonly IGenericRepository<User> _repository;
-        private readonly IConfiguration _configuration;
-        private readonly IPasswordHasherService _passwordService;
+
+        private readonly IGenericRepository<User> _userRepository;
+        private readonly IPasswordHashingService _passwordHashingService;
+        private readonly SymmetricSecurityKey _signingKey;
+        private readonly string _issuer;
+        private readonly string _audience;
+
         public AuthenticationService(
-            IGenericRepository<User> repository, 
-            IConfiguration configuration,
-            IPasswordHasherService passwordService)
+            IGenericRepository<User> userRepository,
+            IPasswordHashingService passwordHashingService,
+            SymmetricSecurityKey signingKey,
+            string issuer,
+            string audience)
         {
-            _repository = repository;
-            _configuration = configuration;
-            _passwordService = passwordService;
+            _userRepository = userRepository;
+            _passwordHashingService = passwordHashingService;
+            _signingKey = signingKey;
+            _issuer = issuer;
+            _audience = audience;
         }
 
-        public async Task<string> Authenticate( CredentialsLoginDto credentials)
+        public async Task<string> Authenticate(CredentialsLoginDto credentials)
         {
-            // Busca si el usuario existe
-            var user = await _repository.GetByFilterAsync(u => credentials.UserEmail == u.UserEmail);
-            var isUserNotFound= user is null;
-            var isUserInactive = user?.IsActive == false;
+            // Validar los resultados recibidos
+            var validationResults = new List<ValidationResult>();
 
-            if (isUserNotFound || isUserInactive)
-                throw new InvalidCredentialException();
+            var emailIsValid = Validator.TryValidateValue(credentials.UserEmail,
+                new ValidationContext(credentials), validationResults,
+                new ValidationAttribute[] { new RequiredAttribute(), new EmailAddressAttribute(), new StringLengthAttribute(254) });
+            var passwordIsValid = Validator.TryValidateValue(credentials.Password,
+                new ValidationContext(credentials), validationResults,
+                new ValidationAttribute[] { new RequiredAttribute() });
 
-            var isPasswordInvalid = !_passwordService.VerifyUserPassword( credentials.UserPassword, user.UserPasswordHash);
-
-            if (isPasswordInvalid)
-                throw new InvalidCredentialException();
+            if (!emailIsValid || !passwordIsValid)
+                throw new ArgumentException(string.Join(" ", validationResults.Select(result => result.ErrorMessage)));
             
+              // Busca si el usuario existe
+             var email = credentials.UserEmail.Trim(); 
+             var user = await _userRepository.GetByFilterAsync(u => email == u.UserEmail);
+             var isUserNotFound= user is null;
+             var isUserInactive = user?.IsActive == false;
 
-            // Clave secreta y algoritmo de firma
-            var securityKey = new SymmetricSecurityKey(
-                              Encoding.ASCII.GetBytes(_configuration["Authentication:SecretForKey"]!));
-            var signature = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+             if (isUserNotFound || isUserInactive)
+                 throw new InvalidCredentialsException();
 
+             var isPasswordInvalid = !_passwordHashingService.VerifyPassword( user , credentials.Password );
+
+             if (isPasswordInvalid)
+                 throw new InvalidCredentialsException();
+            
             // Payload y sus Claims
-            var claimsForToken = new List<Claim>
+             var claims = new[]
             {
-                new("sub", user.UserId.ToString()),
-                new("email", user.UserEmail),
-                new("role", user.UserRole.ToString()) // Al ser un Enum tiene que convertirse a String
+                new Claim("sub", user.UserId.ToString()),
+                new Claim("email", user.UserEmail),
+                new Claim("role", user.UserRole.ToString())
             };
-
-            // Token 
-            var jwtToken = new JwtSecurityToken(
-                _configuration["Authentication:Issuer"],
-                _configuration["Authentication:Audience"],
-                claimsForToken,
-                DateTime.UtcNow,
-                DateTime.UtcNow.AddHours(8), // Duración token: una jornada laboral
-                signature);
+            
+            // Token
+            var now = DateTime.UtcNow;
+            var token = new JwtSecurityToken(
+                issuer: _issuer,
+                audience: _audience,
+                claims: claims,
+                notBefore: now,
+                expires: now.AddHours(8),  // Duración token: una jornada laboral
+                signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256));
 
             // Serialización : header.payload.signature
-            return new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            return new JwtSecurityTokenHandler().WriteToken(token);
+                
         }
     }
 }

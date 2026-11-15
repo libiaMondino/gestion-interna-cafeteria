@@ -46,8 +46,15 @@ namespace Application.Services
             };
         }
 
-        public Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto)
+        public async Task<CategoryDto> CreateAsync(CreateCategoryDto categoryDto)
         {
+            var existingCategory = await _categoryRepository.GetByFilterAsync(
+                category => category.CategoryName == categoryDto.Name.Trim()
+            );
+
+            if (existingCategory != null)
+                throw new ArgumentException("Ya existe una categoría con ese nombre.");
+
             var category = new Category(categoryDto.Name)
             {
                 CategoryDescription = categoryDto.Description
@@ -62,7 +69,7 @@ namespace Application.Services
                 Description = category.CategoryDescription
             };
 
-            return Task.FromResult(result);
+            return result;
         }
 
         public async Task<bool> UpdateAsync(
@@ -73,6 +80,14 @@ namespace Application.Services
 
             if (category == null)
                 return false;
+
+            var existingCategory = await _categoryRepository.GetByFilterAsync(
+                category => category.CategoryName == categoryDto.Name.Trim()
+                    && category.CategoryId != id
+            );
+
+            if (existingCategory != null)
+                throw new ArgumentException("Ya existe una categoría con ese nombre.");
 
             category.ChangeName(categoryDto.Name);
             category.CategoryDescription = categoryDto.Description;

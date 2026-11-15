@@ -1,21 +1,25 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-
-using Domain.Interfaces;
 using Application.Interfaces;
 using Application.Services;
+using Domain.Entities;
+using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
 using Infrastructure.Security;
 using Infrastructure.Transactions;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
 using Presentation.Middlewares;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregado del ApplicationDbContext 
+// Agregado del ApplicationDbContext
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 options.UseSqlServer(connectionString));
@@ -27,50 +31,94 @@ builder.Services.AddAuthorization();
 
 //Inyección de dependencias-----------------------
 builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
+
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeDetailService, RecipeDetailService>();
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
-builder.Services.AddScoped<ITableService, TableService>();
-// Registra CategoryService para que los controladores puedan utilizarlo
-// a través de ICategoryService mediante inyección de dependencias.
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-// Registra UserService para que los controladores puedan utilizarlo
-// mediante la interfaz IUserService.
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITableService, TableService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
-//Verificación de tokens que llegan en cada una de las request
+// Configuración clave secreta
+// Las excepciones no son atrapadas por el global exception middleware(no creado todavía), sino que detiene la ejecución
+// Es preferible que la applicación no se ejecute con seguridad incompleta
+var secretForKey = builder.Configuration["Authentication:SecretForKey"];
 
-builder.Services.AddAuthentication("Bearer")
-.AddJwtBearer(options =>
+if (string.IsNullOrWhiteSpace(secretForKey))
+    throw new InvalidOperationException(
+        "La clave secreta de autenticación no está configurada.");
+
+var secretBytes = Encoding.UTF8.GetBytes(secretForKey);
+
+if (secretBytes.Length < 32)
+    throw new InvalidOperationException(
+        "La clave secreta debe contener al menos 32 bytes.");
+
+var issuer = builder.Configuration["Authentication:Issuer"];
+var audience = builder.Configuration["Authentication:Audience"];
+
+if (string.IsNullOrWhiteSpace(issuer) ||
+    string.IsNullOrWhiteSpace(audience))
 {
-    options.MapInboundClaims = false;
-    // Se crea un objeto de reglas para la autenticación token
-    options.TokenValidationParameters = new()
+    throw new InvalidOperationException(
+        "El emisor y la audiencia JWT son obligatorios.");
+}
+
+// Creación de la clave de firma
+var signingKey = new SymmetricSecurityKey(secretBytes);
+
+// Registración de AuthenticationService
+builder.Services.AddScoped<IAuthenticationService>(provider =>
+    new AuthenticationService(
+        provider.GetRequiredService<IGenericRepository<User>>(),
+        provider.GetRequiredService<IPasswordHashingService>(),
+        signingKey,
+        issuer,
+        audience
+    ));
+
+// Verificación de tokens que llegan en cada una de las request
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        // Validaciones
-        ValidateIssuer = true, // quién lo emitió
-        ValidateAudience = true, // para quién fue emitido
-        ValidateIssuerSigningKey = true, // ¿ La firma es auténtica?
+        options.MapInboundClaims = false;
 
-        // Valores esperados
-        ValidIssuer = builder.Configuration["Authentication:Issuer"],
-        ValidAudience = builder.Configuration["Authentication:Audience"],
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            // Validaciones
+            ValidateIssuer = true, // quién lo emitió
+            ValidateAudience = true, // para quién fue emitido
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true, // ¿ La firma es auténtica?
 
-        // // Carga la clave secreta para verificar la firma del token.
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.ASCII.GetBytes(builder.Configuration["Authentication:SecretForKey"]!)),
+            // Valores esperados
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = signingKey,
 
-        // Le indica a [Authorize(Roles = "...")] qué claim leer del token
-        RoleClaimType = "role",
-        NameClaimType = "sub",
+            // Algoritmo permitido
+            ValidAlgorithms = new[]
+            {
+                SecurityAlgorithms.HmacSha256
+            },
 
-        // Elimina los 5 minutos de tolerancia por defecto cuando expira el token
-        ClockSkew = TimeSpan.Zero
-    };
-});
+            // Le indica a [Authorize(Roles = "...")] qué claim leer del token
+            RoleClaimType = "role",
+            NameClaimType = "sub",
+
+            // Sin tolerancia adicional de expiración
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+
+
 
 var app = builder.Build();
 

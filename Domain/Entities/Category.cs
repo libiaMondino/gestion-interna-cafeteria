@@ -18,6 +18,10 @@ namespace Domain.Entities
             = new List<Product>();
 
         // Constructor
+        private Category()
+        {
+        }
+
         public Category(string categoryName)
         {
             ChangeName(categoryName);
