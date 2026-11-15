@@ -49,7 +49,7 @@ namespace Application.Services
 
         public async Task<IEnumerable<TableDto>> GetOccupiedTablesAsync()
         {
-            var status = "Ocupada";
+            var status = false;
             var tables = await _tableRepository.GetListByFilterAsync(t => t.Status == status);
             return tables.Select(t => new TableDto
             {
@@ -62,7 +62,7 @@ namespace Application.Services
 
         public async Task<IEnumerable<TableDto>> GetReleasedTablesAsync()
         {
-            var status = "Libre";
+            var status = true;
             var tables = await _tableRepository.GetListByFilterAsync(t => t.Status == status);
             return tables.Select(t => new TableDto
             {
@@ -93,18 +93,15 @@ namespace Application.Services
             if (table.Status != objModel.Status)
             {
                 
-                if (objModel.Status == "Libre")
+                if (objModel.Status == true)
                 {
                     table.Release();
                 }
-                else if (objModel.Status == "Ocupada")
+                else if (objModel.Status == false)
                 {
                     table.Occupy();
                 }
-                else
-                {
-                    throw new ArgumentException("El estado debe ser 'Libre' u 'Ocupada'");
-                }
+               
             }
             _tableRepository.Update(table);
             
@@ -115,7 +112,7 @@ namespace Application.Services
             var table = await _tableRepository.GetIdAsync(id);
             if (table is null)
                 throw new KeyNotFoundException($"No se ha encontrado la mesa con el id {id}");
-            if (table.Status == "Ocupada")
+            if (table.Status == false)
                 throw new InvalidOperationException("No se puede eliminar una mesa que está ocupada.");
 
             var orders = await _orderRepository.FilteredCountAsync(o => o.TableId == id);
