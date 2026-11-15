@@ -15,4 +15,5 @@ namespace Application.Models.Users
         string UserEmail, 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         string Password);
+
 }

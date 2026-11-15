@@ -8,10 +8,12 @@ using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
+
 namespace Infrastructure.Security
 {
     public class AuthenticationService : IAuthenticationService
     {
+
         private readonly IGenericRepository<User> _userRepository;
         private readonly IPasswordHashingService _passwordHashingService;
         private readonly SymmetricSecurityKey _signingKey;
@@ -34,6 +36,7 @@ namespace Infrastructure.Security
 
         public async Task<string> Authenticate(CredentialsLoginDto credentials)
         {
+            // Validar los resultados recibidos
             var validationResults = new List<ValidationResult>();
 
             var emailIsValid = Validator.TryValidateValue(credentials.UserEmail,
@@ -45,31 +48,42 @@ namespace Infrastructure.Security
 
             if (!emailIsValid || !passwordIsValid)
                 throw new ArgumentException(string.Join(" ", validationResults.Select(result => result.ErrorMessage)));
+            
+              // Busca si el usuario existe
+             var email = credentials.UserEmail.Trim(); 
+             var user = await _userRepository.GetByFilterAsync(u => email == u.UserEmail);
+             var isUserNotFound= user is null;
+             var isUserInactive = user?.IsActive == false;
 
-            var user = await _userRepository.GetByFilterAsync(
-                user => user.UserEmail == credentials.UserEmail.Trim()
-            );
+             if (isUserNotFound || isUserInactive)
+                 throw new InvalidCredentialsException();
 
-            if (user == null || !user.IsActive || !_passwordHashingService.VerifyPassword(user, credentials.Password))
-                throw new InvalidCredentialsException();
+             var isPasswordInvalid = !_passwordHashingService.VerifyPassword( user , credentials.Password );
 
-            var claims = new[]
+             if (isPasswordInvalid)
+                 throw new InvalidCredentialsException();
+            
+            // Payload y sus Claims
+             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.UserEmail),
-                new Claim(ClaimTypes.Role, user.UserRole.ToString())
+                new Claim("sub", user.UserId.ToString()),
+                new Claim("email", user.UserEmail),
+                new Claim("role", user.UserRole.ToString())
             };
-
+            
+            // Token
             var now = DateTime.UtcNow;
             var token = new JwtSecurityToken(
                 issuer: _issuer,
                 audience: _audience,
                 claims: claims,
                 notBefore: now,
-                expires: now.AddMinutes(60),
+                expires: now.AddHours(8),  // Duración token: una jornada laboral
                 signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256));
 
+            // Serialización : header.payload.signature
             return new JwtSecurityTokenHandler().WriteToken(token);
+                
         }
     }
 }
