@@ -1,5 +1,6 @@
 ﻿using Application.Exceptions;
 using Domain.Exceptions;
+using System.Security.Authentication;
 namespace Presentation.Middlewares
 {
     public class GlobalExceptionHandlingMiddleware(
@@ -31,16 +32,26 @@ namespace Presentation.Middlewares
                     statusCode = StatusCodes.Status401Unauthorized;
                     message = exception.Message;
                     break;
-                case ArgumentException: // Ej: Cuando se ingresa numero de mesa menor o igual a cero
-                    statusCode = StatusCodes.Status400BadRequest;
-                    message = exception.Message;
+                case InvalidCredentialException:
+                    statusCode = StatusCodes.Status401Unauthorized;
+                    message = "Credenciales inválidas.";
                     break;
-
                 case BusinessRuleException:
                     statusCode = StatusCodes.Status409Conflict;
                     message = exception.Message;
                     break;
-
+                case ArgumentException: // Ej: Cuando se ingresa numero de mesa menor o igual a cero
+                    statusCode = StatusCodes.Status400BadRequest;
+                    message = exception.Message;
+                    break;
+                case KeyNotFoundException:
+                    statusCode = StatusCodes.Status404NotFound;
+                    message = exception.Message;
+                    break;
+                case InvalidOperationException:
+                    statusCode = StatusCodes.Status409Conflict;
+                    message = exception.Message;
+                    break;
                 default:
                     logger.LogError(exception, "Error no controlado");
                     statusCode = StatusCodes.Status500InternalServerError;

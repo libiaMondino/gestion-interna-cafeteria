@@ -7,6 +7,6 @@ namespace Application.Interfaces
 {
     public interface IAuthenticationService
     {
-        string Authenticate(CredentialsLoginDto credentials);
+        Task<string> Authenticate(CredentialsLoginDto credentials);
     }
 }

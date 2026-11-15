@@ -54,5 +54,7 @@ namespace Domain.Entities
 
             Status = true;
         }
+
+        
     }
 }
