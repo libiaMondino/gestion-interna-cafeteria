@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Presentation.Middlewares;
 using System.Text;
+using Domain.Entities;
+using Infrastructure.Security;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +38,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 // mediante la interfaz IUserService.
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddScoped<IProductService, ProductService>();
+
 /*Verificación de tokens que llegan en cada una de las request
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>
@@ -50,6 +55,47 @@ builder.Services.AddAuthentication("Bearer")
                 Encoding.ASCII.GetBytes(builder.Configuration["Authentication: SecretForKey"]!))
         };
     });*/
+
+var secretForKey = Environment.GetEnvironmentVariable("Authentication__SecretForKey");
+
+if (string.IsNullOrWhiteSpace(secretForKey) || Encoding.UTF8.GetByteCount(secretForKey) < 32)
+    throw new InvalidOperationException("La variable de entorno Authentication__SecretForKey debe contener una clave de al menos 32 bytes.");
+
+var issuer = builder.Configuration["Authentication:Issuer"];
+var audience = builder.Configuration["Authentication:Audience"];
+
+if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+    throw new InvalidOperationException("El emisor y la audiencia JWT son obligatorios.");
+
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretForKey));
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
+builder.Services.AddScoped<IAuthenticationService>(provider => new AuthenticationService(
+    provider.GetRequiredService<IGenericRepository<User>>(),
+    provider.GetRequiredService<IPasswordHashingService>(),
+    signingKey,
+    issuer,
+    audience));
+
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new()
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = signingKey,
+            ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
