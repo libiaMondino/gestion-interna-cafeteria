@@ -1,0 +1,169 @@
+# Solicitudes manuales para la defensa. NO ejecutar todas juntas.
+# Requisitos: base con migraciones aplicadas, Admin activo y API en ejecucion.
+# Ejecutar cada bloque individualmente y comparar con el resultado esperado.
+# No guardar ni subir tokens o contrasenas reales a Git.
+# Obtener el token con el login preparado por Libia (POST /api/authentication/login).
+# Pegar tokens solo durante la sesion y restaurar los marcadores antes de un commit.
+# Cambiar baseUrl por el dominio HTTPS de Azure para probar el despliegue.
+@baseUrl = https://localhost:7256
+@adminToken = REEMPLAZAR_TEMPORALMENTE_CON_TOKEN_ADMIN
+@otherRoleToken = REEMPLAZAR_TEMPORALMENTE_CON_TOKEN_WAITER_O_KITCHEN
+# Reemplazar los ceros por los IDs devueltos. No asumir que son 1.
+@ingredientId = 0
+@recipeDetailId = 0
+@movementId = 0
+# Producto de prueba existente, tipo Prepared, creado por la responsable de productos.
+@preparedProductId = 0
+
+### 1. Sin token: esperado 401.
+GET {{baseUrl}}/api/ingredients
+
+### 2. Token valido de Waiter o Kitchen: esperado 403.
+# Un token vencido/invalido produce 401; eso no comprueba el rol.
+GET {{baseUrl}}/api/ingredients
+Authorization: Bearer {{otherRoleToken}}
+
+### 3. Crear insumo de prueba: esperado 201, stock 0 y alerta de minimo true.
+# Copiar el id de la respuesta en ingredientId. Ejecutar una sola vez.
+POST {{baseUrl}}/api/ingredients
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Leche demo Anto",
+  "unitOfMeasure": "Litros",
+  "minimumStock": 2
+}
+
+### 4. Consultar insumo: esperado 200 con los datos creados.
+GET {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+### 5. Registrar entrada: esperado 201 y movimiento de entrada por 5 litros.
+# Ejecutar UNA vez: repetir suma otros 5 litros. Copiar id en movementId.
+# El responsable se obtiene del JWT; no se envia userId.
+POST {{baseUrl}}/api/stock-movements/entries
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "quantity": 5,
+  "reason": "Reposicion de prueba para la defensa",
+  "productId": null,
+  "ingredientId": {{ingredientId}}
+}
+
+### 6. Verificar stock: esperado 200, quantityStock 5, isBelowMinimum false.
+# Supone insumo nuevo, una sola entrada y ningun consumo concurrente.
+GET {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+### 7. Consultar movimiento creado: esperado 200, cantidad 5 y usuario del token.
+GET {{baseUrl}}/api/stock-movements/{{movementId}}
+Authorization: Bearer {{adminToken}}
+
+### 8. Historial del insumo: esperado 200, incluye la entrada anterior.
+GET {{baseUrl}}/api/stock-movements/ingredient/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+### 9. Actualizar nombre y minimo conservando unidad: esperado 204.
+PUT {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Leche demo Anto",
+  "unitOfMeasure": "Litros",
+  "minimumStock": 5
+}
+
+### 10. Minimo alcanzado: esperado stock 5, minimo 5 y isBelowMinimum true.
+GET {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+### 11. Entrada con cantidad cero: esperado 400, sin cambiar stock ni historial.
+POST {{baseUrl}}/api/stock-movements/entries
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "quantity": 0,
+  "reason": "Prueba de validacion",
+  "productId": null,
+  "ingredientId": {{ingredientId}}
+}
+
+### 12. Cambiar unidad con stock: esperado 409, conserva Litros.
+PUT {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Leche demo Anto",
+  "unitOfMeasure": "Mililitros",
+  "minimumStock": 5
+}
+
+### 13. Crear detalle para producto Prepared: esperado 201.
+# Usar un producto de prueba existente y un insumo aun no incluido en su receta.
+# Copiar id de la respuesta en recipeDetailId. No modifica stock.
+POST {{baseUrl}}/api/recipe-details
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "productId": {{preparedProductId}},
+  "ingredientId": {{ingredientId}},
+  "requiredQuantity": 0.2
+}
+
+### 14. Consultar receta del producto: esperado 200, incluye el detalle creado.
+GET {{baseUrl}}/api/recipe-details/product/{{preparedProductId}}
+Authorization: Bearer {{adminToken}}
+
+### 15. Repetir el mismo insumo en la receta: esperado 409, sin duplicado.
+POST {{baseUrl}}/api/recipe-details
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "productId": {{preparedProductId}},
+  "ingredientId": {{ingredientId}},
+  "requiredQuantity": 0.2
+}
+
+### 16. Actualizar cantidad de receta: esperado 204.
+PUT {{baseUrl}}/api/recipe-details/{{recipeDetailId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "requiredQuantity": 0.25
+}
+
+### 17. Consultar detalle: esperado 200 y requiredQuantity 0.25.
+GET {{baseUrl}}/api/recipe-details/{{recipeDetailId}}
+Authorization: Bearer {{adminToken}}
+
+### 18. Cantidad de receta negativa: esperado 400 y conserva 0.25.
+PUT {{baseUrl}}/api/recipe-details/{{recipeDetailId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "requiredQuantity": -1
+}
+
+### 19. Eliminar insumo con stock: esperado 409, el insumo se conserva.
+# Ejecutar solo sobre el insumo de prueba con los 5 litros anteriores.
+DELETE {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+### 20. Verificacion final: stock 5, minimo 5 y alerta true.
+# Los intentos rechazados y la edicion de receta no deben consumir stock.
+GET {{baseUrl}}/api/ingredients/{{ingredientId}}
+Authorization: Bearer {{adminToken}}
+
+# Las salidas por preparacion se prueban con el circuito de comandas de More.
+# Estos ejemplos no crean usuarios, categorias ni productos.
+# Son una guia manual: los resultados esperados NO significan pruebas ejecutadas.
