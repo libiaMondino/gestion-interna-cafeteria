@@ -5,6 +5,7 @@ using Domain.Interfaces;
 using Infrastructure;
 using Infrastructure.Repositories;
 using Infrastructure.Security;
+using Infrastructure.Seeders;
 using Infrastructure.Transactions;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -34,6 +35,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepositor
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
+builder.Services.AddScoped<AdminSeeder>();
 
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeDetailService, RecipeDetailService>();
@@ -130,6 +132,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Se ejecuta el Seeder de forma controlada al iniciar
+using ( var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
+    await seeder.SeedAsync();
+}
+
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
