@@ -106,7 +106,7 @@ namespace Application.Services
                 var order =
                     await _orderRepository.GetByFilterWithIncludesAsync(
                         o => o.Id == kitchenOrderDto.OrderId,
-                        "KitchenOrders");
+                        "KitchenOrders.OrderDetails.Product");
 
                 if (order == null)
                     throw new KeyNotFoundException(
@@ -145,7 +145,8 @@ namespace Application.Services
                         product.ProductPrice)
                     {
                         ProductId = product.ProductId,
-                        KitchenOrderId = kitchenOrder.Id
+                        KitchenOrderId = kitchenOrder.Id,
+                        Product = product
                     };
 
                     kitchenOrder.AddOrderDetail(detail);
@@ -176,7 +177,7 @@ namespace Application.Services
                 var kitchenOrder =
                     await _kitchenOrderRepository.GetByFilterWithIncludesAsync(
                         k => k.Id == kitchenOrderId,
-                        "Order",
+                        "Order.KitchenOrders.OrderDetails.Product",
                         "OrderDetails.Product");
 
                 if (kitchenOrder == null)
@@ -203,7 +204,8 @@ namespace Application.Services
                     product.ProductPrice)
                 {
                     ProductId = product.ProductId,
-                    KitchenOrderId = kitchenOrder.Id
+                    KitchenOrderId = kitchenOrder.Id,
+                    Product = product
                 };
 
                 kitchenOrder.AddOrderDetail(detail);
@@ -232,7 +234,7 @@ namespace Application.Services
             });
         }
 
-        // 7. Iniciar la preparación y descontar ingredientes
+        // 7. Iniciar la preparación y descontar stock
         public async Task<KitchenOrderDto> MarkAsPreparingAsync(
             int id,
             int userId)
@@ -246,7 +248,7 @@ namespace Application.Services
                 var kitchenOrder =
                     await _kitchenOrderRepository.GetByFilterWithIncludesAsync(
                         k => k.Id == id,
-                        "OrderDetails");
+                        "OrderDetails.Product");
 
                 if (kitchenOrder == null)
                     throw new KeyNotFoundException(
@@ -256,43 +258,91 @@ namespace Application.Services
                     throw new BusinessRuleException(
                         "La comanda debe estar enviada para comenzar su preparación.");
 
-                var consumptions =
+                var ingredientConsumptions =
                     new List<(Ingredient Ingredient, OrderDetail Detail, decimal Quantity)>();
 
+                var purchasedConsumptions =
+                    new List<(Product Product, OrderDetail Detail)>();
+
+                // Identificar qué stock necesita cada producto.
                 foreach (var detail in kitchenOrder.OrderDetails)
                 {
-                    var recipes =
-                        await _recipeDetailRepository.GetListByFilterAsync(
-                            r => r.ProductId == detail.ProductId);
+                    var product = detail.Product;
 
-                    if (!recipes.Any())
-                        throw new BusinessRuleException(
-                            $"El producto {detail.ProductId} no tiene una receta configurada.");
+                    if (product == null)
+                        throw new KeyNotFoundException(
+                            $"No se encontró el producto {detail.ProductId}.");
 
-                    foreach (var recipe in recipes)
+                    if (product.ProductType == ProductType.Purchased)
                     {
-                        var ingredient =
-                            await _ingredientRepository.GetIdAsync(
-                                recipe.IngredientId);
+                        purchasedConsumptions.Add((product, detail));
+                    }
+                    else if (product.ProductType == ProductType.Prepared)
+                    {
+                        var recipes =
+                            await _recipeDetailRepository.GetListByFilterAsync(
+                                r => r.ProductId == product.ProductId);
 
-                        if (ingredient == null)
-                            throw new KeyNotFoundException(
-                                $"No se encontró el ingrediente {recipe.IngredientId}.");
+                        if (!recipes.Any())
+                            throw new BusinessRuleException(
+                                $"El producto {product.ProductName} no tiene una receta configurada.");
 
-                        decimal quantity =
-                            recipe.CalculateConsumption(detail.Quantity);
+                        foreach (var recipe in recipes)
+                        {
+                            var ingredient =
+                                await _ingredientRepository.GetIdAsync(
+                                    recipe.IngredientId);
 
-                        consumptions.Add(
-                            (ingredient, detail, quantity));
+                            if (ingredient == null)
+                                throw new KeyNotFoundException(
+                                    $"No se encontró el ingrediente {recipe.IngredientId}.");
+
+                            decimal quantity =
+                                recipe.CalculateConsumption(detail.Quantity);
+
+                            ingredientConsumptions.Add(
+                                (ingredient, detail, quantity));
+                        }
+                    }
+                    else
+                    {
+                        throw new BusinessRuleException(
+                            $"El producto {product.ProductName} tiene un tipo no válido.");
                     }
                 }
 
-                // Primero verificamos el stock total necesario
-                // para cada ingrediente.
-                var groupedConsumptions = consumptions
+                // Acumular todos los faltantes antes de modificar el stock.
+                var shortages = new List<string>();
+
+                // Verificar stock de productos comprados.
+                var groupedProducts = purchasedConsumptions
+                    .GroupBy(c => c.Product.ProductId);
+
+                foreach (var group in groupedProducts)
+                {
+                    var product = group.First().Product;
+
+                    int totalRequired =
+                        group.Sum(c => c.Detail.Quantity);
+
+                    if (product.ProductQuantityStock == null)
+                    {
+                        shortages.Add(
+                            $"{product.ProductName}: no tiene el control de stock configurado.");
+                    }
+                    else if (product.ProductQuantityStock < totalRequired)
+                    {
+                        shortages.Add(
+                            $"{product.ProductName}: stock disponible {product.ProductQuantityStock}, " +
+                            $"cantidad necesaria {totalRequired}.");
+                    }
+                }
+
+                // Verificar stock de ingredientes.
+                var groupedIngredients = ingredientConsumptions
                     .GroupBy(c => c.Ingredient.Id);
 
-                foreach (var group in groupedConsumptions)
+                foreach (var group in groupedIngredients)
                 {
                     decimal totalRequired =
                         group.Sum(c => c.Quantity);
@@ -300,13 +350,42 @@ namespace Application.Services
                     var ingredient = group.First().Ingredient;
 
                     if (!ingredient.HasSufficientStock(totalRequired))
-                        throw new BusinessRuleException(
-                            $"No hay stock suficiente de {ingredient.Name}.");
+                    {
+                        shortages.Add(
+                            $"{ingredient.Name}: stock disponible insuficiente, " +
+                            $"cantidad necesaria {totalRequired}.");
+                    }
                 }
 
-                // Si todo el stock está disponible, registramos
-                // los descuentos y sus movimientos.
-                foreach (var consumption in consumptions)
+                // Si existe algún faltante, no se modifica ningún stock.
+                if (shortages.Any())
+                {
+                    throw new BusinessRuleException(
+                        "No se puede iniciar la preparación. Faltan recursos:\n- " +
+                        string.Join("\n- ", shortages));
+                }
+
+                // Descontar stock de productos comprados.
+                foreach (var consumption in purchasedConsumptions)
+                {
+                    consumption.Product.RemoveStock(
+                        consumption.Detail.Quantity);
+
+                    _productRepository.Update(consumption.Product);
+
+                    var movement = new StockMovement(
+                        consumption.Detail.Quantity,
+                        StockMovementType.Out,
+                        $"Consumo por preparación de comanda {id}",
+                        userId,
+                        productId: consumption.Product.ProductId,
+                        orderDetailId: consumption.Detail.Id);
+
+                    _stockMovementRepository.Add(movement);
+                }
+
+                // Descontar stock de ingredientes.
+                foreach (var consumption in ingredientConsumptions)
                 {
                     consumption.Ingredient.RegisterStockExit(
                         consumption.Quantity);

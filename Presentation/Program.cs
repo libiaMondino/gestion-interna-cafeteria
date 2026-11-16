@@ -10,31 +10,78 @@ using Infrastructure.Transactions;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 using Presentation.Middlewares;
 using System.Text;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregado del ApplicationDbContext
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+// --------------------------------------------------
+// BASE DE DATOS
+// --------------------------------------------------
+
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "No se encontró la cadena de conexión DefaultConnection.");
+}
+
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
-options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 
-builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
 
-//Inyección de dependencias-----------------------
-builder.Services.AddScoped(typeof(IGenericRepository<>),typeof( GenericRepository<>));
+// --------------------------------------------------
+// SWAGGER
+// --------------------------------------------------
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "API Cafetería",
+        Version = "v1",
+        Description = "API para la gestión interna de la cafetería."
+    });
+
+    // Configuración de autenticación JWT
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresá tu token JWT."
+    });
+
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+        });
+});
+
+// --------------------------------------------------
+// INYECCIÓN DE DEPENDENCIAS
+// --------------------------------------------------
+
+builder.Services.AddScoped(
+    typeof(IGenericRepository<>),
+    typeof(GenericRepository<>));
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
+
 builder.Services.AddScoped<AdminSeeder>();
 
 builder.Services.AddScoped<IIngredientService, IngredientService>();
@@ -45,24 +92,31 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITableService, TableService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IKitchenOrderService, KitchenOrderService>();
 builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
 
-// Configuración clave secreta
-// Las excepciones no son atrapadas por el global exception middleware(no creado todavía), sino que detiene la ejecución
-// Es preferible que la applicación no se ejecute con seguridad incompleta
-var secretForKey = builder.Configuration["Authentication:SecretForKey"];
+// --------------------------------------------------
+// CONFIGURACIÓN JWT
+// --------------------------------------------------
+
+var secretForKey =
+    builder.Configuration["Authentication:SecretForKey"];
 
 if (string.IsNullOrWhiteSpace(secretForKey))
+{
     throw new InvalidOperationException(
         "La clave secreta de autenticación no está configurada.");
+}
 
 var secretBytes = Encoding.UTF8.GetBytes(secretForKey);
 
 if (secretBytes.Length < 32)
+{
     throw new InvalidOperationException(
         "La clave secreta debe contener al menos 32 bytes.");
+}
 
 var issuer = builder.Configuration["Authentication:Issuer"];
 var audience = builder.Configuration["Authentication:Audience"];
@@ -74,10 +128,10 @@ if (string.IsNullOrWhiteSpace(issuer) ||
         "El emisor y la audiencia JWT son obligatorios.");
 }
 
-// Creación de la clave de firma
+// Clave de firma
 var signingKey = new SymmetricSecurityKey(secretBytes);
 
-// Registración de AuthenticationService
+// AuthenticationService
 builder.Services.AddScoped<IAuthenticationService>(provider =>
     new AuthenticationService(
         provider.GetRequiredService<IGenericRepository<User>>(),
@@ -87,58 +141,117 @@ builder.Services.AddScoped<IAuthenticationService>(provider =>
         audience
     ));
 
-// Verificación de tokens que llegan en cada una de las request
+// --------------------------------------------------
+// AUTENTICACIÓN Y VALIDACIÓN DE TOKENS
+// --------------------------------------------------
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Validaciones
-            ValidateIssuer = true, // quién lo emitió
-            ValidateAudience = true, // para quién fue emitido
+            ValidateIssuer = true,
+            ValidateAudience = true,
             ValidateLifetime = true,
-            ValidateIssuerSigningKey = true, // ¿ La firma es auténtica?
+            ValidateIssuerSigningKey = true,
 
-            // Valores esperados
             ValidIssuer = issuer,
             ValidAudience = audience,
             IssuerSigningKey = signingKey,
 
-            // Algoritmo permitido
             ValidAlgorithms = new[]
             {
                 SecurityAlgorithms.HmacSha256
             },
 
-            // Le indica a [Authorize(Roles = "...")] qué claim leer del token
             RoleClaimType = "role",
             NameClaimType = "sub",
 
-            // Sin tolerancia adicional de expiración
             ClockSkew = TimeSpan.Zero
+        };
+
+        // Verificación adicional del usuario en cada solicitud
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim = context.Principal?
+                    .FindFirst("sub")?.Value;
+
+                if (!int.TryParse(userIdClaim, out int userId) ||
+                    userId <= 0)
+                {
+                    context.Fail("Token inválido.");
+                    return;
+                }
+
+                var userRepository = context.HttpContext
+                    .RequestServices
+                    .GetRequiredService<IGenericRepository<User>>();
+
+                var user = await userRepository.GetIdAsync(userId);
+
+                // Comprobar que el usuario exista y esté activo
+                if (user == null || !user.IsActive)
+                {
+                    context.Fail("El usuario no existe o está inactivo.");
+                    return;
+                }
+
+                // Comprobar que el rol del token siga vigente
+                var tokenRole = context.Principal?
+                    .FindFirst("role")?.Value;
+
+                var currentRole = user.UserRole.ToString();
+
+                if (string.IsNullOrWhiteSpace(tokenRole) ||
+                    tokenRole != currentRole)
+                {
+                    context.Fail("El rol del usuario ha cambiado.");
+                }
+            }
         };
     });
 
-
-
+// --------------------------------------------------
+// CONSTRUCCIÓN DE LA APLICACIÓN
+// --------------------------------------------------
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Swagger UI (solo en entorno de desarrollo)
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "API Cafetería v1");
+
+        options.DocumentTitle = "API Cafetería";
+    });
 }
 
-// Se ejecuta el Seeder de forma controlada al iniciar
-using ( var scope = app.Services.CreateScope())
+// --------------------------------------------------
+// SEEDER
+// --------------------------------------------------
+
+using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
+    var seeder = scope.ServiceProvider
+        .GetRequiredService<AdminSeeder>();
+
     await seeder.SeedAsync();
 }
+
+// --------------------------------------------------
+// PIPELINE HTTP
+// --------------------------------------------------
 
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
