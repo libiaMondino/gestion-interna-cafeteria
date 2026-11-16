@@ -140,6 +140,8 @@ namespace Infrastructure
 
             });
 
+
+
             modelBuilder.Entity<Order>(entity =>
             {
                 entity.HasKey(o => o.Id);
@@ -147,10 +149,12 @@ namespace Infrastructure
                 entity.Property(o => o.DateTime)
                     .IsRequired();
 
+                // Guardar el enum como texto
                 entity.Property(o => o.Status)
-                    .IsRequired()
+                    .HasConversion<string>()
                     .HasMaxLength(20)
-                    .HasDefaultValue("Activo");
+                    .IsRequired()
+                    .HasDefaultValue(OrderStatus.Active);
 
                 entity.Property(o => o.Total)
                     .HasPrecision(18, 2)
@@ -172,7 +176,7 @@ namespace Infrastructure
                 {
                     t.HasCheckConstraint(
                         "CK_Order_Status",
-                        "[Status] IN ('Activo', 'Cerrado')"
+                        "[Status] IN ('Active', 'Closed')"
                     );
 
                     t.HasCheckConstraint(

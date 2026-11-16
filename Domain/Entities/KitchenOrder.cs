@@ -1,7 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using Domain.Enums;
+﻿using Domain.Enums;
 
 namespace Domain.Entities
 {
@@ -10,9 +7,9 @@ namespace Domain.Entities
         // Propiedades
         public int Id { get; set; }
 
-        public DateTime? SentDateTime { get; set; }
+        public DateTime? SentDateTime { get; private set; }
 
-        public KitchenOrderStatus Status { get; set; }
+        public KitchenOrderStatus Status { get; private set; }
             = KitchenOrderStatus.Pending;
 
         public int OrderId { get; set; }
@@ -26,12 +23,12 @@ namespace Domain.Entities
         // Agrega un detalle a la comanda
         public void AddOrderDetail(OrderDetail orderDetail)
         {
+            if (orderDetail == null)
+                throw new ArgumentNullException(nameof(orderDetail));
+
             if (Status != KitchenOrderStatus.Pending)
                 throw new InvalidOperationException(
                     "Solo se pueden agregar productos a una comanda pendiente.");
-
-            if (orderDetail == null)
-                throw new ArgumentNullException(nameof(orderDetail));
 
             if (orderDetail.Quantity <= 0)
                 throw new ArgumentException(
@@ -40,8 +37,6 @@ namespace Domain.Entities
             if (orderDetail.UnitPrice < 0)
                 throw new ArgumentException(
                     "El precio unitario no puede ser negativo.");
-
-            orderDetail.SubTotal = orderDetail.CalculateSubtotal();
 
             orderDetail.KitchenOrder = this;
 
@@ -96,13 +91,10 @@ namespace Domain.Entities
         // Cancela la comanda
         public void Cancel()
         {
-            if (Status == KitchenOrderStatus.Delivered)
+            if (Status != KitchenOrderStatus.Pending &&
+                Status != KitchenOrderStatus.Sent)
                 throw new InvalidOperationException(
-                    "No se puede cancelar una comanda ya entregada.");
-
-            if (Status == KitchenOrderStatus.Cancelled)
-                throw new InvalidOperationException(
-                    "La comanda ya está cancelada.");
+                    "Solo se pueden cancelar comandas pendientes o enviadas.");
 
             Status = KitchenOrderStatus.Cancelled;
         }

@@ -8,7 +8,7 @@ namespace Application.Models
     {
         public int Id { get; set; }
         public DateTime DateTime { get; set; }
-        public string Status { get; set; } = "Activo";
+        public OrderStatus Status { get; set; }
         public decimal Total { get; set; }
 
         public int TableId { get; set; }

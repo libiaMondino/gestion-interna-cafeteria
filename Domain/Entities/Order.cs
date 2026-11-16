@@ -1,8 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Domain.Enums;
+﻿using Domain.Enums;
 
 namespace Domain.Entities
 {
@@ -13,7 +9,8 @@ namespace Domain.Entities
 
         public DateTime DateTime { get; set; }
 
-        public string Status { get; set; } = "Activo";
+        public OrderStatus Status { get; private set; }
+            = OrderStatus.Active;
 
         public decimal Total { get; private set; }
 
@@ -32,7 +29,7 @@ namespace Domain.Entities
         // Agrega una comanda al pedido
         public void AddKitchenOrder(KitchenOrder kitchenOrder)
         {
-            if (Status != "Activo")
+            if (Status != OrderStatus.Active)
                 throw new InvalidOperationException(
                     "No se pueden agregar comandas a un pedido cerrado.");
 
@@ -59,27 +56,27 @@ namespace Domain.Entities
             Total = KitchenOrders
                 .Where(k => k.Status != KitchenOrderStatus.Cancelled)
                 .SelectMany(k => k.OrderDetails)
-                .Sum(d => d.CalculateSubtotal());
+                .Sum(d => d.SubTotal);
         }
 
         // Cierra el pedido
         public void Close()
         {
-            if (Status != "Activo")
+            if (Status != OrderStatus.Active)
                 throw new InvalidOperationException(
                     "El pedido ya está cerrado.");
 
-            bool hasPendingKitchenOrders = KitchenOrders.Any(k =>
+            bool hasUnfinishedKitchenOrders = KitchenOrders.Any(k =>
                 k.Status != KitchenOrderStatus.Delivered &&
                 k.Status != KitchenOrderStatus.Cancelled);
 
-            if (hasPendingKitchenOrders)
+            if (hasUnfinishedKitchenOrders)
                 throw new InvalidOperationException(
                     "No se puede cerrar el pedido porque hay comandas que no fueron entregadas ni canceladas.");
 
             CalculateTotal();
 
-            Status = "Cerrado";
+            Status = OrderStatus.Closed;
         }
     }
 }

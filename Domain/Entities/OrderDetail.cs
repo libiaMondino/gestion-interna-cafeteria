@@ -1,15 +1,17 @@
-﻿
+﻿using System;
+
 namespace Domain.Entities
 {
     public class OrderDetail
     {
+        // Propiedades
         public int Id { get; set; }
 
-        public int Quantity { get; set; }
+        public int Quantity { get; private set; }
 
-        public decimal UnitPrice { get; set; }
+        public decimal UnitPrice { get; private set; }
 
-        public decimal SubTotal { get; set; }
+        public decimal SubTotal { get; private set; }
 
         public int KitchenOrderId { get; set; }
 
@@ -20,18 +22,32 @@ namespace Domain.Entities
 
         public Product Product { get; set; } = null!;
 
-        // Calcula el subtotal del detalle
-        public decimal CalculateSubtotal()
+        // Constructor para crear un detalle
+        public OrderDetail(int quantity, decimal unitPrice)
         {
-            if (Quantity <= 0)
-                throw new InvalidOperationException(
+            if (quantity <= 0)
+                throw new ArgumentException(
                     "La cantidad debe ser mayor que cero.");
 
-            if (UnitPrice < 0)
-                throw new InvalidOperationException(
+            if (unitPrice < 0)
+                throw new ArgumentException(
                     "El precio unitario no puede ser negativo.");
 
-            return UnitPrice * Quantity;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+
+            CalculateSubtotal();
+        }
+
+        // Constructor para Entity Framework
+        private OrderDetail()
+        {
+        }
+
+        // Calcula el subtotal
+        public void CalculateSubtotal()
+        {
+            SubTotal = Quantity * UnitPrice;
         }
     }
 }
