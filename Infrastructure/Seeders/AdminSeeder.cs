@@ -27,10 +27,19 @@ namespace Infrastructure.Seeders
 
         public async Task SeedAsync()
         {
-            // Verificar si ya existe uno o varios usuarios con rol admin
-            var admin = await _repository.GetByFilterAsync(user => user.UserRole == UserRole.Admin);
+            var enabled = bool.TryParse(
+                _configuration["AdminUser:Enabled"],
+                out var configuredEnabled) && configuredEnabled;
 
-            
+            if (!enabled)
+            {
+                return;
+            }
+
+            // Verificar si ya existe uno o varios usuarios con rol admin
+            var admin = await _repository.GetByFilterAsync(
+                user => user.UserRole == UserRole.Admin);
+
             if (admin is null)
             {
                 // Se leen las crendenciales desde appsettings
