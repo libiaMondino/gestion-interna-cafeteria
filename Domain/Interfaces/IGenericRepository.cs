@@ -34,7 +34,5 @@ namespace Domain.Interfaces
         Task<int> FilteredCountAsync(Expression<Func<TEntity, bool>>? predicate = null);
         //Task SaveChangesAsync();
 
-        // Para liberar de la memoria los recursos que no se necesiten(ej: conexión activa de la BDD)
-        void Dispose();
     }
 }
