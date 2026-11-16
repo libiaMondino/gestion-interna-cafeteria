@@ -26,11 +26,13 @@ namespace Domain.Entities
         public OrderDetail(int quantity, decimal unitPrice)
         {
             if (quantity <= 0)
-                throw new ArgumentException(
+                throw new ArgumentOutOfRangeException(
+                    nameof(quantity),
                     "La cantidad debe ser mayor que cero.");
 
             if (unitPrice < 0)
-                throw new ArgumentException(
+                throw new ArgumentOutOfRangeException(
+                    nameof(unitPrice),
                     "El precio unitario no puede ser negativo.");
 
             Quantity = quantity;
@@ -45,7 +47,7 @@ namespace Domain.Entities
         }
 
         // Calcula el subtotal
-        public void CalculateSubtotal()
+        private void CalculateSubtotal()
         {
             SubTotal = Quantity * UnitPrice;
         }

@@ -1,4 +1,6 @@
-﻿using Domain.Enums;
+﻿using System;
+using System.Collections.Generic;
+using Domain.Enums;
 
 namespace Domain.Entities
 {
@@ -23,12 +25,22 @@ namespace Domain.Entities
         // Agrega un detalle a la comanda
         public void AddOrderDetail(OrderDetail orderDetail)
         {
-            if (orderDetail == null)
-                throw new ArgumentNullException(nameof(orderDetail));
+            ArgumentNullException.ThrowIfNull(orderDetail);
 
             if (Status != KitchenOrderStatus.Pending)
                 throw new InvalidOperationException(
                     "Solo se pueden agregar productos a una comanda pendiente.");
+
+            if (OrderDetails.Contains(orderDetail))
+                throw new InvalidOperationException(
+                    "El detalle ya fue agregado a esta comanda.");
+
+            if (orderDetail.KitchenOrder != null &&
+                orderDetail.KitchenOrder != this)
+            {
+                throw new InvalidOperationException(
+                    "El detalle ya pertenece a otra comanda.");
+            }
 
             if (orderDetail.Quantity <= 0)
                 throw new ArgumentException(
@@ -39,7 +51,6 @@ namespace Domain.Entities
                     "El precio unitario no puede ser negativo.");
 
             orderDetail.KitchenOrder = this;
-
             OrderDetails.Add(orderDetail);
         }
 
@@ -93,8 +104,10 @@ namespace Domain.Entities
         {
             if (Status != KitchenOrderStatus.Pending &&
                 Status != KitchenOrderStatus.Sent)
+            {
                 throw new InvalidOperationException(
                     "Solo se pueden cancelar comandas pendientes o enviadas.");
+            }
 
             Status = KitchenOrderStatus.Cancelled;
         }

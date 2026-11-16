@@ -10,8 +10,12 @@ namespace Application.Interfaces
 
         Task<OrderDto?> GetByIdAsync(int id);
 
-        Task<OrderDto> CreateAsync(CreateOrderDto orderDto);
+        Task<OrderDto?> GetActiveByTableIdAsync(int tableId);
 
-        Task<bool> CloseAsync(int id);
+        Task<OrderDto> CreateAsync(
+            CreateOrderDto orderDto,
+            int userId);
+
+        Task<OrderDto> CloseAsync(int id);
     }
 }

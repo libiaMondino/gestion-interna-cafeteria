@@ -7,8 +7,15 @@ namespace Domain.Interfaces
 {
     public interface IGenericRepository<TEntity> where TEntity : class
     {
-        Task<TEntity?> GetIdAsync(int id); 
+        Task<TEntity?> GetIdAsync(int id);
         Task<IEnumerable<TEntity>> GetAllAsync();
+
+        Task<IEnumerable<TEntity>> GetAllWithIncludesAsync(
+            params string[] includes);
+        Task<TEntity?> GetByFilterWithIncludesAsync(
+            Expression<Func<TEntity, bool>> predicate,
+            params string[] includes);
+
 
         // Métodos para obtener con filtros
         Task<TEntity?> GetByFilterAsync(Expression<Func<TEntity, bool>> predicate);
