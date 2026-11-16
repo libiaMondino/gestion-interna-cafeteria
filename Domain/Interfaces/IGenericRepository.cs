@@ -7,8 +7,15 @@ namespace Domain.Interfaces
 {
     public interface IGenericRepository<TEntity> where TEntity : class
     {
-        Task<TEntity?> GetIdAsync(int id); 
+        Task<TEntity?> GetIdAsync(int id);
         Task<IEnumerable<TEntity>> GetAllAsync();
+
+        Task<IEnumerable<TEntity>> GetAllWithIncludesAsync(
+            params string[] includes);
+        Task<TEntity?> GetByFilterWithIncludesAsync(
+            Expression<Func<TEntity, bool>> predicate,
+            params string[] includes);
+
 
         // Métodos para obtener con filtros
         Task<TEntity?> GetByFilterAsync(Expression<Func<TEntity, bool>> predicate);
@@ -27,7 +34,5 @@ namespace Domain.Interfaces
         Task<int> FilteredCountAsync(Expression<Func<TEntity, bool>>? predicate = null);
         //Task SaveChangesAsync();
 
-        // Para liberar de la memoria los recursos que no se necesiten(ej: conexión activa de la BDD)
-        void Dispose();
     }
 }

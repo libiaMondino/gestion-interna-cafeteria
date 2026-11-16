@@ -1,5 +1,3 @@
-
-
 using Microsoft.AspNetCore.Mvc;
 using Application.Interfaces;
 using Application.Models.Categories;

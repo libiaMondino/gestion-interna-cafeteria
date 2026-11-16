@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Data;
 using System.Threading.Tasks;
 using Domain.Interfaces;
@@ -28,6 +29,7 @@ namespace Infrastructure.Transactions
                 var result = await operation();
 
                 await _context.SaveChangesAsync();
+
                 await transaction.CommitAsync();
 
                 return result;
@@ -38,8 +40,14 @@ namespace Infrastructure.Transactions
                 {
                     await transaction.RollbackAsync();
                 }
+                catch
+                {
+                    // Se conserva la excepción original.
+                }
                 finally
                 {
+                    // Se limpian las entidades rastreadas
+                    // para evitar estados inconsistentes.
                     _context.ChangeTracker.Clear();
                 }
 

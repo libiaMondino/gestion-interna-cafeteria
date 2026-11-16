@@ -43,6 +43,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITableService, TableService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IKitchenOrderService, KitchenOrderService>();
+builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
 
 // Configuración clave secreta
 // Las excepciones no son atrapadas por el global exception middleware(no creado todavía), sino que detiene la ejecución

@@ -1,16 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 using Domain.Enums;
 
 namespace Infrastructure
 {
     public class ApplicationDBContext : DbContext
-    {   //DbContextOptions<ApplicationDBContext> contiene la configuración que necesita Entity Framework Core, por ejemplo, qué motor de base de datos utilizar.
-        //options es el parámetro donde recibimos esa configuración.
-        //: base(options) le pasa esa configuración al constructor de la clase padre, DbContext.
+    {
         public ApplicationDBContext(DbContextOptions<ApplicationDBContext> options)
             : base(options)
-
         {
         }
 
@@ -28,9 +26,9 @@ namespace Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //método para configurar como nuestras clases se represetan en la base de datos
             base.OnModelCreating(modelBuilder);
 
+            // Configuración de Category
             modelBuilder.Entity<Category>(entity =>
             {
                 entity.HasKey(c => c.CategoryId);
@@ -45,31 +43,34 @@ namespace Infrastructure
                 entity.Property(c => c.CategoryDescription)
                     .HasMaxLength(255);
             });
-            //Configuracion de product
+
+            // Configuración de Product
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(p => p.ProductId);
-                entity.HasOne(p => p.Category)// cada producto tiene una categoria
-                .WithMany(c => c.Products) //cada categoria puede tener muchos productos
-                .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
-                //nombre
+
+                entity.HasOne(p => p.Category)
+                    .WithMany(c => c.Products)
+                    .HasForeignKey(p => p.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.Property(p => p.ProductName)
                     .IsRequired()
                     .HasMaxLength(100);
-                //descipcion, opcional
+
                 entity.Property(p => p.ProductDescription)
                     .HasMaxLength(255);
-                // Disponibilidad: obligatoria
+
                 entity.Property(p => p.ProductIsAvailable)
                     .IsRequired();
+
                 entity.Property(p => p.ProductPrice)
-                .HasPrecision(18, 2);
+                    .HasPrecision(18, 2);
+
                 entity.Property(p => p.ProductType)
                     .HasConversion<string>()
                     .HasMaxLength(20)
-                    .IsRequired();// para guardar si es comprado o elaborado
-
+                    .IsRequired();
 
                 entity.ToTable(t =>
                 {
@@ -82,31 +83,34 @@ namespace Infrastructure
                         "CK_Product_MinimumStock",
                         "[ProductMinimumStock] IS NULL OR [ProductMinimumStock] >= 0"
                     );
-                    t.HasCheckConstraint( //no guardar rpreciosn negativos
-                "CK_Product_Price",
-                    "[ProductPrice] >= 0"
+
+                    t.HasCheckConstraint(
+                        "CK_Product_Price",
+                        "[ProductPrice] >= 0"
                     );
                 });
-
             });
 
             // Configuración de User
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.UserId);
+
                 entity.Property(u => u.UserName)
-                 .IsRequired()
-                 .HasMaxLength(100);
+                    .IsRequired()
+                    .HasMaxLength(100);
 
                 entity.Property(u => u.UserLastName)
                     .IsRequired()
                     .HasMaxLength(100);
+
                 entity.Property(u => u.UserEmail)
                     .IsRequired()
                     .HasMaxLength(254);
 
                 entity.HasIndex(u => u.UserEmail)
                     .IsUnique();
+
                 entity.Property(u => u.UserPasswordHash)
                     .IsRequired()
                     .HasMaxLength(512);
@@ -115,33 +119,44 @@ namespace Infrastructure
                     .HasConversion<string>()
                     .HasMaxLength(20)
                     .IsRequired();
+
                 entity.Property(u => u.IsActive)
                     .IsRequired();
             });
-            // Configuración de Tables
+
+            // Configuración de Table
             modelBuilder.Entity<Table>(entity =>
             {
                 entity.HasKey(t => t.Id);
+
                 entity.Property(t => t.Number)
                     .IsRequired();
+
                 entity.HasIndex(t => t.Number)
                     .IsUnique();
+
                 entity.Property(t => t.Capacity)
                     .IsRequired();
+
                 entity.Property(t => t.Status)
                     .IsRequired()
                     .HasDefaultValue(true);
 
                 entity.ToTable(t =>
                 {
-                    t.HasCheckConstraint("CK_Table_Number", "[Number] > 0");
-                    t.HasCheckConstraint("CK_Table_Capacity", "[Capacity] > 0");
-                });
+                    t.HasCheckConstraint(
+                        "CK_Table_Number",
+                        "[Number] > 0"
+                    );
 
+                    t.HasCheckConstraint(
+                        "CK_Table_Capacity",
+                        "[Capacity] > 0"
+                    );
+                });
             });
 
-
-
+            // Configuración de Order
             modelBuilder.Entity<Order>(entity =>
             {
                 entity.HasKey(o => o.Id);
@@ -149,7 +164,6 @@ namespace Infrastructure
                 entity.Property(o => o.DateTime)
                     .IsRequired();
 
-                // Guardar el enum como texto
                 entity.Property(o => o.Status)
                     .HasConversion<string>()
                     .HasMaxLength(20)
@@ -160,13 +174,11 @@ namespace Infrastructure
                     .HasPrecision(18, 2)
                     .IsRequired();
 
-                // Relación Order - Table
                 entity.HasOne(o => o.Table)
                     .WithMany(t => t.Orders)
                     .HasForeignKey(o => o.TableId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Relación Order - User
                 entity.HasOne(o => o.User)
                     .WithMany(u => u.Orders)
                     .HasForeignKey(o => o.UserId)
@@ -186,6 +198,7 @@ namespace Infrastructure
                 });
             });
 
+            // Configuración de KitchenOrder
             modelBuilder.Entity<KitchenOrder>(entity =>
             {
                 entity.HasKey(k => k.Id);
@@ -198,13 +211,22 @@ namespace Infrastructure
                     .HasMaxLength(20)
                     .IsRequired();
 
-                // Relación KitchenOrder - Order
                 entity.HasOne(k => k.Order)
                     .WithMany(o => o.KitchenOrders)
                     .HasForeignKey(k => k.OrderId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Validación de los estados permitidos
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_KitchenOrder_Status",
+                        "[Status] IN ('Pending', 'Sent', 'InPreparation', 'Ready', 'Delivered', 'Cancelled')"
+                    );
+                });
             });
 
+            // Configuración de OrderDetail
             modelBuilder.Entity<OrderDetail>(entity =>
             {
                 entity.HasKey(d => d.Id);
@@ -220,13 +242,11 @@ namespace Infrastructure
                     .HasPrecision(18, 2)
                     .IsRequired();
 
-                // Relación OrderDetail - KitchenOrder
                 entity.HasOne(d => d.KitchenOrder)
                     .WithMany(k => k.OrderDetails)
                     .HasForeignKey(d => d.KitchenOrderId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Relación OrderDetail - Product
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.ProductId)
@@ -312,7 +332,6 @@ namespace Infrastructure
                         "[RequiredQuantity] > 0"
                     );
                 });
-
             });
 
             // Configuración de StockMovement
@@ -375,7 +394,6 @@ namespace Infrastructure
                     );
                 });
             });
-
         }
     }
 }
