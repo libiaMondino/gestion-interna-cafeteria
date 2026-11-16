@@ -1,6 +1,5 @@
 ﻿using Application.Interfaces;
 using Application.Models;
-using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +7,7 @@ namespace Presentation.Controllers
 {
     [ApiController]
     [Route("api/recipe-details")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class RecipeDetailsController : ControllerBase
     {
         private readonly IRecipeDetailService _recipeDetailService;
@@ -49,7 +48,7 @@ namespace Presentation.Controllers
             return Ok(details);
         }
 
-        [Authorize(Roles = nameof(UserRole.Admin))]
+     
         [HttpPost]
         public async Task<IActionResult> Create(
             [FromBody] CreateRecipeDetailDto recipeDetailDto)
@@ -63,7 +62,7 @@ namespace Presentation.Controllers
                 detail);
         }
 
-        [Authorize(Roles = nameof(UserRole.Admin))]
+      
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(
             int id,
@@ -81,7 +80,7 @@ namespace Presentation.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = nameof(UserRole.Admin))]
+       
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

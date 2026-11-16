@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Application.Interfaces;
 using Application.Models.Users;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Presentation.Controllers
 {
     [ApiController]
     [Route("api/users")]
+    [Authorize(Roles = "Admin")]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;

@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using Application.Interfaces;
 using Application.Models;
-using Domain.Enums;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +9,7 @@ namespace Presentation.Controllers
 {
     [ApiController]
     [Route("api/stock-movements")]
-    [Authorize(Roles = nameof(UserRole.Admin))]
+    [Authorize(Roles = "Admin")]
     public class StockMovementsController : ControllerBase
     {
         private readonly IStockMovementService _stockMovementService;
