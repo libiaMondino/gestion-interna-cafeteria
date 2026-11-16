@@ -106,7 +106,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("KitchenOrders");
+                    b.ToTable("KitchenOrders", t =>
+                        {
+                            t.HasCheckConstraint("CK_KitchenOrder_Status", "[Status] IN ('Pending', 'Sent', 'InPreparation', 'Ready', 'Delivered', 'Cancelled')");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Order", b =>
