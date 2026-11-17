@@ -1,3 +1,4 @@
+
 using Application.Interfaces;
 using Application.Services;
 using Domain.Entities;
@@ -37,6 +38,7 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
     options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
+
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>(client =>
 {
     client.BaseAddress = new Uri("https://dolarapi.com/");
@@ -58,7 +60,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API para la gestión interna de la cafetería."
     });
 
-    // Configuración de autenticación JWT
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -133,10 +134,8 @@ if (string.IsNullOrWhiteSpace(issuer) ||
         "El emisor y la audiencia JWT son obligatorios.");
 }
 
-// Clave de firma
 var signingKey = new SymmetricSecurityKey(secretBytes);
 
-// AuthenticationService
 builder.Services.AddScoped<IAuthenticationService>(provider =>
     new AuthenticationService(
         provider.GetRequiredService<IGenericRepository<User>>(),
@@ -178,7 +177,6 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
 
-        // Verificación adicional del usuario en cada solicitud
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
@@ -199,14 +197,12 @@ builder.Services
 
                 var user = await userRepository.GetIdAsync(userId);
 
-                // Comprobar que el usuario exista y esté activo
                 if (user == null || !user.IsActive)
                 {
                     context.Fail("El usuario no existe o está inactivo.");
                     return;
                 }
 
-                // Comprobar que el rol del token siga vigente
                 var tokenRole = context.Principal?
                     .FindFirst("role")?.Value;
 
@@ -243,11 +239,17 @@ if (app.Environment.IsDevelopment())
 }
 
 // --------------------------------------------------
-// SEEDER
+// MIGRACIONES Y SEEDER
 // --------------------------------------------------
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<ApplicationDBContext>();
+
+    // Aplicar migraciones pendientes antes de inicializar datos
+    await dbContext.Database.MigrateAsync();
+
     var seeder = scope.ServiceProvider
         .GetRequiredService<AdminSeeder>();
 
