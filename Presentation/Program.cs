@@ -227,18 +227,20 @@ builder.Services
 
 var app = builder.Build();
 
-// Swagger UI disponible localmente y en Azure para probar la API.
-// Los endpoints conservan sus requisitos de autenticacion y roles.
-app.UseSwagger();
-
-app.UseSwaggerUI(options =>
+// Swagger UI (solo en entorno de desarrollo)
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint(
-        "/swagger/v1/swagger.json",
-        "API Cafetería v1");
+    app.UseSwagger();
 
-    options.DocumentTitle = "API Cafetería";
-});
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "API Cafetería v1");
+
+        options.DocumentTitle = "API Cafetería";
+    });
+}
 
 // --------------------------------------------------
 // SEEDER
